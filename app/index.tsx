@@ -1,4 +1,4 @@
-import {useState} from "react";
+import { useState } from "react";
 import {
   Text,
   ToastAndroid,
@@ -6,6 +6,8 @@ import {
   StyleSheet,
   Button,
   Platform,
+  Alert,
+  Image
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { FontAwesome } from "@expo/vector-icons";
@@ -20,52 +22,81 @@ import { FontAwesome } from "@expo/vector-icons";
 //     console.log("Button Pressed!");
 //   }
 // };
-// Opening camera function
-const openCamera = () => {
-  const [imageuri, setImageuri] = useState <string | null>(null); 
-  
-  const openCamera = async () => {
-    const {status}= await ImagePicker.requestCameraPermissionsAsync();
-    if(status!=="granted"){
-      alert("Camera access denied");
-      return;
-    }
-    if(status==="granted")
-    {
-      let data=await ImagePicker.launchCameraAsync({
-       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [9,16],
-      quality: 1,
-      })
-      if (!data.canceled) {
-      
-      setImageuri(data.assets[0].uri);
-      console.log("Image URI:", data.assets[0].uri);
-    } else {
-      // Optional: User closed the camera without taking a photo
-      console.log("Camera operation cancelled.");
-    }
-    }
-  } 
-  ToastAndroid.show(
-    "Camera function invoked! Camera logic runs here.",
-    ToastAndroid.LONG
-  );
-};
 
-export default function home() {
+
+
+
+
+export default function Home() {
+  const [imageuri, setImageuri] = useState<string | null>(null);
+  //take camera permission
+  const showNotification = (message: string) => {
+    if (Platform.OS === "android") {
+      ToastAndroid.show(message, ToastAndroid.SHORT);
+    } else {
+      Alert.alert("Notification", message);
+    }
+  };
+  const takeCameraPermission = async () => {
+
+    const { granted } = await ImagePicker.requestCameraPermissionsAsync();
+    if (!granted) {
+      showNotification("You need to give camera permission to use this feature");
+      return false;
+    }
+    return true;
+  }
+  // Opening camera function
+  const openCamera = async () => {
+
+    if (Platform.OS === "android") {
+      try {
+        const isCameraPermitted = await takeCameraPermission();
+        if (!isCameraPermitted)
+          ToastAndroid.show("Camera permission denied", ToastAndroid.SHORT);
+        else {
+          let result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: false,
+            aspect: [9, 16],
+            quality: 1,
+          });
+          if (!result.canceled && result.assets) {
+            setImageuri(result.assets[0].uri);
+            ToastAndroid.show("Image captured successfully!", ToastAndroid.SHORT);
+          }
+        }
+      } catch (error) {
+        ToastAndroid.show("Error opening camera", ToastAndroid.SHORT);
+      }
+
+    }
+    //show image on screen
+    if (imageuri) {
+      return (
+        <View>
+          <Text>Captured Image:</Text>
+          <Image source={{ uri: imageuri }} style={{ width: 200, height: 400 }} />
+        </View>
+      );
+    } else {
+      return null;
+    }
+  }
+
+
+
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Welcome to the Home Page!</Text>
 
       <View style={styles.iconButtonContainer}>
-        <FontAwesome
+        {/* <FontAwesome
           name="bell"
           size={24}
           color="#FFF"
-          // onPress={getNotification}
-        />
+         onPress={getNotification}
+        /> */}
         <Text style={styles.iconButtonText}>Notify Me</Text>
       </View>
 
@@ -74,7 +105,13 @@ export default function home() {
       <View style={{ height: 20 }} />
 
       <Button title="Open camera" onPress={openCamera} />
-      {/* </View> */}
+      
+      <View style={styles.iconButtonContainer}>
+      <Text style={styles.iconButtonText} onPress={() => setImageuri(null)}>Delete Image</Text>
+      </View>
+      {imageuri && (
+        <Image source={{ uri: imageuri }} style={{ width: 300, height: 300 }} />
+      )}
     </View>
   );
 }
