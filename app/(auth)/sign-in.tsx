@@ -1,12 +1,12 @@
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useCallback, useEffect } from 'react';
-// Assume you are using Expo Router for this to work
+
 import { useSSO } from '@clerk/clerk-expo';
 import { router } from 'expo-router';
 import { Alert, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-// 1. Hook to warm up the browser for Android
+
 export const useWarmUpBrowser = () => {
   useEffect(() => {
     // Check for 'android' platform only for warmUp/coolDown
@@ -24,28 +24,19 @@ export const useWarmUpBrowser = () => {
 
 // Handle any pending authentication sessions globally
 WebBrowser.maybeCompleteAuthSession();
-
-// Renamed from 'Page' to 'SignInWithGoogle' for clarity, but 'Page' is fine if you're using it in the file-based routing system.
 export default function SignInWithGoogle() {
   useWarmUpBrowser();
-
-  // Use the `useSSO()` hook to access the `startSSOFlow()` method
-  // NOTE: This component MUST be wrapped inside a <ClerkProvider> for this hook to work.
   const { startSSOFlow } = useSSO();
-
   const onPress = useCallback(async () => {
     try {
       const { createdSessionId, setActive, signIn, signUp } = await startSSOFlow({
         strategy: 'oauth_google',
-
-        // 🚨 BEST PRACTICE: Use a specific scheme for Native Apps
-        // You MUST define a 'scheme' in your app.json (e.g., 'myapp') and use it here.
         redirectUrl: AuthSession.makeRedirectUri({
-          scheme: 'csm', // Matched with app.json
+          scheme: 'csm',
         }),
       });
 
-      // 1. Successful Sign-In/Sign-Up via Google
+      // Successful Sign-In/Sign-Up via Google
       if (createdSessionId) {
         // Set the newly created session as the active session
         setActive!({
@@ -53,38 +44,26 @@ export default function SignInWithGoogle() {
           // Handle navigation after session is set
           navigate: async ({ session }) => {
             if (session?.currentTask) {
-              // Handle required tasks like MFA, verification, etc.
               console.log("Current Task Required:", session.currentTask);
-              // Navigate user to a custom UI to resolve the task
-              router.push('/(auth)/sign-in'); // Corrected path
+              
+              router.push('/(home)');
               return;
             }
-
-            // No tasks, user is fully authenticated, navigate to the main screen
             router.push('/');
           },
         });
       }
-
-      // 2. Missing Requirements (e.g., MFA or Sign-Up)
-      // If createdSessionId is null, Clerk returns the necessary objects (signIn or signUp)
       else if (signIn) {
-        // Handle missing requirements for sign-in, such as requiring MFA
+
         console.log("Sign-in requirements missing:", signIn.status);
-        // You would typically navigate to a screen to handle this, e.g., router.push('/mfa-screen');
       }
 
       else if (signUp) {
-        // Handle sign-up flow, such as requiring a step like profile completion
         console.log("Sign-up requirements missing:", signUp.status);
-        // You would typically navigate to a screen to handle this, e.g., router.push('/profile-setup-screen');
       }
 
     } catch (err) {
-      // Log the full error for debugging and show a friendly message to the user
       console.error("Clerk SSO Error:", JSON.stringify(err, null, 2));
-
-      // Provide user feedback
       Alert.alert(
         "Authentication Failed",
         "Could not complete sign-in. Please check your network or try again."
