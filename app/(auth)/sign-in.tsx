@@ -1,7 +1,7 @@
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useCallback, useEffect } from 'react';
-
+import LottieView from 'lottie-react-native';
 import { useSSO } from '@clerk/clerk-expo';
 import { Redirect, router } from 'expo-router';
 import { Alert, Platform, StyleSheet,Linking, Text, TouchableOpacity, View } from 'react-native';
@@ -83,6 +83,9 @@ export default function SignInWithGoogle() {
 
   return (
     <View style={styles.container}>
+      <View>
+        
+      </View>
       <View style={styles.card}>
         <Text style={styles.title}>Welcome to csm</Text>
         <Text style={styles.subtitle}>Sign in to continue</Text>
@@ -103,7 +106,7 @@ export default function SignInWithGoogle() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F4F8',
+    backgroundColor: '#357dc6ff',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
