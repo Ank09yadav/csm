@@ -3,8 +3,8 @@ import * as WebBrowser from 'expo-web-browser';
 import React, { useCallback, useEffect } from 'react';
 
 import { useSSO } from '@clerk/clerk-expo';
-import { router } from 'expo-router';
-import { Alert, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Redirect, router } from 'expo-router';
+import { Alert, Platform, StyleSheet,Linking, Text, TouchableOpacity, View } from 'react-native';
 
 
 export const useWarmUpBrowser = () => {
@@ -21,6 +21,16 @@ export const useWarmUpBrowser = () => {
     };
   }, []);
 };
+//open term and condition 
+const openConditionLink = async ()=>{
+  const url='https://csmtermsandconditions.netlify.app/'
+  const supported= await Linking.canOpenURL(url);
+  if(supported){
+    await Linking.openURL(url);
+  }else{
+    Alert.alert(`Don\'t know how to open url? ${url}`)
+  }
+}
 
 // Handle any pending authentication sessions globally
 WebBrowser.maybeCompleteAuthSession();
@@ -74,8 +84,14 @@ export default function SignInWithGoogle() {
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <Text style={styles.title}>Welcome Back</Text>
+        <Text style={styles.title}>Welcome to csm</Text>
         <Text style={styles.subtitle}>Sign in to continue</Text>
+        <Text style={styles.baseText}>
+      By signing in, you agree to our{' '}
+      <Text style={styles.linkText} onPress={openConditionLink}>
+        Terms and Conditions
+      </Text>
+    </Text>
         <TouchableOpacity style={styles.button} onPress={onPress}>
           <Text style={styles.buttonText}>Sign in with Google</Text>
         </TouchableOpacity>
@@ -129,4 +145,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  baseText: { color: '#333', fontSize: 14 },
+  linkText: { color: '#2e78b7', fontWeight: 'bold', textDecorationLine: 'underline' },
 });
