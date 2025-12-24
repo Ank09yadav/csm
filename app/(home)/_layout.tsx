@@ -1,26 +1,36 @@
 import { useUser } from '@clerk/clerk-expo';
-import { Stack, router } from 'expo-router';
-import { View, Image, StyleSheet, TouchableOpacity, Text, Modal, Pressable } from 'react-native';
+import { usePathname,Stack, router } from 'expo-router';
+import { View, Image, StyleSheet, TouchableOpacity, Text, Modal, Pressable, ToastAndroid } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 
 export default function HomeLayout() {
   const { user } = useUser();
+  const currentPath = usePathname();
   const [menuVisible, setMenuVisible] = useState(false);
 
   // Fallback for TypeScript null error
   const headerTitle = user?.fullName || "Guest User";
-
+  
+  // 1. Universal Guard Function
+  const safeNavigate = (targetPath: string) => {
+    if (currentPath === targetPath) {
+      ToastAndroid.show(`You are Already On Friend List`,ToastAndroid.SHORT)
+      return; // Do nothing if already there
+    }
+    setMenuVisible(false);
+    router.push(targetPath as any);
+  };
   const rooms = [
-    { id: 'hindi', name: 'Hindi Room', icon: 'language' },
-    { id: 'english', name: 'English Room', icon: 'text' },
-    { id: 'song', name: 'Song Room', icon: 'musical-notes' },
-    { id: 'poetry', name: 'Poetry Room', icon: 'brush' },
+    { id: 'hindi', name: 'Hindi', icon: 'language' },
+    { id: 'english', name: 'English', icon: 'text' },
+    { id: 'song', name: 'Songs', icon: 'musical-notes' },
+    { id: 'poetry', name: 'Poetry', icon: 'brush' },
   ];
 
   const navigateToRoom = (roomId: string) => {
     setMenuVisible(false);
-    router.push(`/rooms/${roomId}`);
+    safeNavigate(`/rooms/${roomId}`);
   };
 
   return (
@@ -32,29 +42,44 @@ export default function HomeLayout() {
           headerTitleAlign: 'left',
           headerLeft: () => (
             <View style={styles.imageContainer}>
-              {user?.imageUrl ? (
-                <Image source={{ uri: user.imageUrl }} style={styles.profileImage} />
+              <TouchableOpacity
+              onPress={()=>{
+                if(currentPath==='/profile')
+                  ToastAndroid.show("Already on Profile Page",ToastAndroid.SHORT)
+                else
+                  safeNavigate('/profile');
+              }}
+              >
+                  {user?.imageUrl ? (
+                <Image source={{ uri: user.imageUrl }  } style={styles.profileImage} />
               ) : (
                 <View style={[styles.profileImage, { backgroundColor: '#ccc' }]} />
               )}
+              </TouchableOpacity>
+              
+              
             </View>
+           
           ),
-          title: headerTitle,
+           title: headerTitle,
           headerRight: () => (
             <View style={styles.headerRightContainer}>
               {/* Apps Icon triggers the Modal Menu */}
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.iconButton}
                 onPress={() => setMenuVisible(true)}
               >
-                <Ionicons name="apps-outline" size={24} color="white" />
+                <Ionicons name={'home'} size={24} color="white" />
               </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.iconButton} 
-                onPress={() => console.log('Message pressed')}
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={() => safeNavigate('/friendListPage')}
               >
-                <Ionicons name="chatbubble-ellipses-outline" size={24} color="white" />
+                <Ionicons 
+                  name={currentPath === '/friendListPage' ? "chatbubble-ellipses" : "chatbubble-ellipses"} 
+                  size={24} 
+                  color="white" 
+                />
               </TouchableOpacity>
             </View>
           ),
@@ -68,15 +93,15 @@ export default function HomeLayout() {
         animationType="fade"
         onRequestClose={() => setMenuVisible(false)}
       >
-        <Pressable 
-          style={styles.modalOverlay} 
+        <Pressable
+          style={styles.modalOverlay}
           onPress={() => setMenuVisible(false)}
         >
           <View style={styles.dropdownMenu}>
             <Text style={styles.menuHeader}>Select Room</Text>
             {rooms.map((room) => (
-              <TouchableOpacity 
-                key={room.id} 
+              <TouchableOpacity
+                key={room.id}
                 style={styles.menuItem}
                 onPress={() => navigateToRoom(room.id)}
               >
@@ -92,13 +117,13 @@ export default function HomeLayout() {
 }
 
 const styles = StyleSheet.create({
-  imageContainer: { marginLeft: 5 },
+  imageContainer: { marginHorizontal: 5 },
   profileImage: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: '#fff',
+    borderColor: '#e9e8f1ff',
   },
   headerRightContainer: {
     flexDirection: 'row',
@@ -117,8 +142,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   dropdownMenu: {
-    marginTop: 60, // Position below header
-    marginRight: 15,
+    marginTop: 20, // Position below header
+    marginRight: 10,
     backgroundColor: 'white',
     borderRadius: 12,
     paddingVertical: 10,
