@@ -1,7 +1,8 @@
-import { SignOutButton } from '@/app/components/SignOutButton'
+
 import { SignedIn, SignedOut, useUser } from '@clerk/clerk-expo'
 import { Link } from 'expo-router'
-import { SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Page() {
   const { user } = useUser()
@@ -13,9 +14,7 @@ export default function Page() {
           <View style={styles.card}>
             <Text style={styles.welcomeText}>Welcome back!</Text>
             <Text style={styles.emailText}>{user?.emailAddresses[0].emailAddress}</Text>
-            <View style={styles.buttonContainer}>
-              <SignOutButton />
-            </View>
+            
           </View>
         </SignedIn>
         <SignedOut>
