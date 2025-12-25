@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router'; // Move usage to top level
-import { 
-    StyleSheet, 
-    TextInput, 
-    Text, 
-    View, 
-    TouchableOpacity, 
-    ScrollView, 
-    ActivityIndicator, 
-    KeyboardAvoidingView, 
-    Platform 
+import {
+    StyleSheet,
+    TextInput,
+    Text,
+    View,
+    TouchableOpacity,
+    ScrollView,
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    Platform,
+    BackHandler
 } from 'react-native';
 import { useUser, useAuth } from '@clerk/clerk-expo';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 const Profile = () => {
     // 1. Correctly initialize hooks at the top level
-    const router = useRouter(); 
+    const router = useRouter();
     const { user, isLoaded } = useUser();
     const { signOut } = useAuth();
     const insets = useSafeAreaInsets();
@@ -26,7 +27,7 @@ const Profile = () => {
     const [college, setCollege] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // 2. Fixed Sign Out Function
+    //Fixed Sign Out Function
     const onSignOutPress = async () => {
         try {
             setLoading(true);
@@ -38,7 +39,15 @@ const Profile = () => {
             setLoading(false);
         }
     };
+    useEffect(() => {
+        const backAction = () => {
+            router.replace('/(home)'); // Always go back to Home
+            return true;
+        };
 
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+        return () => backHandler.remove();
+    }, []);
     const updateDetails = async () => {
         // Implementation here
     };
@@ -53,16 +62,16 @@ const Profile = () => {
     }
 
     return (
-        <KeyboardAvoidingView 
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+        <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             style={{ flex: 1, backgroundColor: '#F5F7FA' }}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
         >
-            <ScrollView 
+            <ScrollView
                 style={styles.container}
-                contentContainerStyle={{ 
-                    paddingBottom: insets.bottom + 100, 
-                    
+                contentContainerStyle={{
+                    paddingBottom: insets.bottom + 100,
+
                 }}
                 keyboardShouldPersistTaps="handled"
                 automaticallyAdjustKeyboardInsets={true}
@@ -116,7 +125,7 @@ const Profile = () => {
                     </TouchableOpacity>
 
                     <TouchableOpacity
-                        style={[styles.button, { backgroundColor: '#d9534f', marginTop: 15 }]} 
+                        style={[styles.button, { backgroundColor: '#d9534f', marginTop: 15 }]}
                         onPress={onSignOutPress}
                     >
                         <Ionicons name='log-out-outline' size={20} color="white" style={{ marginRight: 8 }} />

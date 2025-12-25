@@ -4,7 +4,7 @@ import { View, Image, StyleSheet, TouchableOpacity, Text, Modal, Pressable, Toas
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { rooms } from '../data';
-import { useHrefAttrs } from 'expo-router/build/link/useLinkHooks';
+
 
 export default function HomeLayout() {
   const { user } = useUser();
@@ -28,7 +28,12 @@ export default function HomeLayout() {
   const navigateToRoom = (roomId: string) => {
     const targetPath = `/rooms/${roomId}`;
 
-    if (roomId === 'hindi') {
+    if (roomId ==='hindi') {
+      router.replace('/')
+      setMenuVisible(false);
+      return;
+    }
+    if (currentPath === targetPath) {
       ToastAndroid.show("You are already in this room", ToastAndroid.SHORT);
       setMenuVisible(false);
       return;

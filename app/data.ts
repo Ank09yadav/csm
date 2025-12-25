@@ -10,7 +10,7 @@ export interface User {
     phone?: string;
 }
 export const rooms = [
-    { id: 'hindi', name: 'Hindi', icon: 'language' },
+    { id: 'hindi', name: 'General', icon: 'language' },
     { id: 'english', name: 'English', icon: 'text' },
     { id: 'song', name: 'Songs', icon: 'musical-notes' },
     { id: 'poetry', name: 'Poetry', icon: 'brush' },
