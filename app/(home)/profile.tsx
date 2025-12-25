@@ -61,8 +61,8 @@ const Profile = () => {
             <ScrollView 
                 style={styles.container}
                 contentContainerStyle={{ 
-                    paddingBottom: insets.bottom + 40, 
-                    paddingTop: insets.top + 20 
+                    paddingBottom: insets.bottom + 100, 
+                    
                 }}
                 keyboardShouldPersistTaps="handled"
                 automaticallyAdjustKeyboardInsets={true}

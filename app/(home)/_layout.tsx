@@ -3,6 +3,7 @@ import { usePathname,Stack, router } from 'expo-router';
 import { View, Image, StyleSheet, TouchableOpacity, Text, Modal, Pressable, ToastAndroid } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
+import { rooms } from '../data';
 
 export default function HomeLayout() {
   const { user } = useUser();
@@ -12,21 +13,16 @@ export default function HomeLayout() {
   // Fallback for TypeScript null error
   const headerTitle = user?.fullName || "Guest User";
   
-  // 1. Universal Guard Function
+  //Universal Guard Function
   const safeNavigate = (targetPath: string) => {
     if (currentPath === targetPath) {
       ToastAndroid.show(`You are Already On Friend List`,ToastAndroid.SHORT)
-      return; // Do nothing if already there
+      return; 
     }
     setMenuVisible(false);
     router.push(targetPath as any);
   };
-  const rooms = [
-    { id: 'hindi', name: 'Hindi', icon: 'language' },
-    { id: 'english', name: 'English', icon: 'text' },
-    { id: 'song', name: 'Songs', icon: 'musical-notes' },
-    { id: 'poetry', name: 'Poetry', icon: 'brush' },
-  ];
+  
 
   const navigateToRoom = (roomId: string) => {
     setMenuVisible(false);

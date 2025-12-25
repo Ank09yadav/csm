@@ -1,98 +1,145 @@
+import React, { useState } from 'react';
+import { useUser } from '@clerk/clerk-expo';
+import { Ionicons } from '@expo/vector-icons';
+import {
+  StyleSheet, Text, TouchableOpacity, View,
+  KeyboardAvoidingView, ScrollView, Platform, TextInput
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SignedIn, SignedOut, useUser } from '@clerk/clerk-expo'
-import { Link } from 'expo-router'
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-export default function Page() {
-  const { user } = useUser()
+export default function ChatPage() {
+  const insets = useSafeAreaInsets();
+  const { user } = useUser();
+  const [message, setMessage] = useState('');
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <SignedIn>
-          <View style={styles.card}>
-            <Text style={styles.welcomeText}>Welcome back!</Text>
-            <Text style={styles.emailText}>{user?.emailAddresses[0].emailAddress}</Text>
-            
-          </View>
-        </SignedIn>
-        <SignedOut>
-          <View style={styles.card}>
-            <Text style={styles.title}>Welcome to CSM</Text>
-            <Text style={styles.subtitle}>Please sign in to continue</Text>
-            <Link href="/(auth)/sign-in" asChild>
-              <TouchableOpacity style={styles.signInButton}>
-                <Text style={styles.signInButtonText}>Sign In</Text>
-              </TouchableOpacity>
-            </Link>
-          </View>
-        </SignedOut>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={styles.mainWrapper}
+      // Offset matches your header height to prevent overlapping
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
+      {/* 1. Sub-Header (Sticky at top) */}
+      <View style={[styles.subHeader, { paddingTop: insets.top }]}>
+        <Text style={styles.subHeaderText}>Hindi Room</Text>
       </View>
-    </SafeAreaView>
-  )
+
+      {/* 2. Message List (Scrollable Area) */}
+      <ScrollView
+        style={styles.chatContainer}
+        contentContainerStyle={{ padding: 15, paddingBottom: 20 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.receivedMessage}>
+          <Text style={styles.messageText}>Hello! This is the first message.</Text>
+          <Text style={styles.timestamp}>12:00 PM</Text>
+        </View>
+        
+        {/* Placeholder for sent messages */}
+        <View style={styles.sentMessage}>
+          <Text style={styles.sentMessageText}>Hi! I can see this works perfectly.</Text>
+        </View>
+      </ScrollView>
+
+      {/* 3. Input Bar (Sticky at bottom) */}
+      <View style={[styles.inputWrapper, { paddingBottom: insets.bottom + 10 }]}>
+        <TouchableOpacity style={styles.iconButton}>
+          <Ionicons name='add-circle-outline' size={28} color="#2e78b7" />
+        </TouchableOpacity>
+        
+        <TextInput
+          style={styles.textInput}
+          placeholder='Type a message...'
+          value={message}
+          onChangeText={setMessage}
+          multiline
+        />
+
+        <TouchableOpacity 
+          style={styles.sendButton} 
+          onPress={() => {
+            console.log('Message sent:', message);
+            setMessage('');
+          }}
+        >
+          <Ionicons name='send' size={24} color="white" />
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
+  );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  mainWrapper: {
     flex: 1,
     backgroundColor: '#F5F7FA',
   },
-  content: {
+  subHeader: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 15,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  subHeaderText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1c2d43',
+  },
+  chatContainer: {
     flex: 1,
+    backgroundColor: '#bdcfe7ff',
+  },
+  receivedMessage: {
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 15,
+    borderTopLeftRadius: 2,
+    maxWidth: '80%',
+    alignSelf: 'flex-start',
+    marginBottom: 10,
+    elevation: 1,
+  },
+  sentMessage: {
+    backgroundColor: '#2e78b7',
+    padding: 12,
+    borderRadius: 15,
+    borderTopRightRadius: 2,
+    maxWidth: '80%',
+    alignSelf: 'flex-end',
+    marginBottom: 10,
+  },
+  messageText: { color: '#333' },
+  sentMessageText: { color: '#fff' },
+  timestamp: { fontSize: 10, color: '#999', marginTop: 4, textAlign: 'right' },
+  
+  // Input Bar Styles
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  textInput: {
+    flex: 1,
+    backgroundColor: '#f0f2f5',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    marginHorizontal: 10,
+    maxHeight: 100,
+    fontSize: 16,
+  },
+  iconButton: { padding: 5 },
+  sendButton: {
+    backgroundColor: '#2e78b7',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-  },
-  card: {
-    backgroundColor: 'white',
-    padding: 30,
-    borderRadius: 16,
-    width: '100%',
-    maxWidth: 400,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-    alignItems: 'center',
-  },
-  welcomeText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
-  },
-  emailText: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 24,
-  },
-  buttonContainer: {
-    width: '100%',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 30,
-  },
-  signInButton: {
-    backgroundColor: '#2e78b7',
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    borderRadius: 10,
-    width: '100%',
-    alignItems: 'center',
-  },
-  signInButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-})
+  }
+});
