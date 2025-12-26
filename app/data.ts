@@ -14,7 +14,7 @@ export const rooms = [
     { id: 'english', name: 'English', icon: 'text' },
     { id: 'song', name: 'Songs', icon: 'musical-notes' },
     { id: 'poetry', name: 'Poetry', icon: 'brush' },
-  ];
+];
 
 export interface Message {
     id: string;
@@ -30,13 +30,12 @@ export interface Message {
 export interface Room {
     id: string;
     type: 'direct' | 'group';
-    name?: string; // For group chats or derived from participant for direct
+    name?: string;
     participants: string[]; // User IDs
-    admins?: string[]; // User IDs for group admins
+
     lastMessageId?: string;
     unreadCount: number;
     avatar?: string; // For group chats
-    createdAt: string;
 }
 
 // --- Mock Data ---
@@ -90,6 +89,8 @@ export const USERS: User[] = [
 
 // Friends list (subset of USERS)
 export const FRIENDS: User[] = [USERS[0], USERS[1], USERS[3]];
+export const FRIEND_REQUESTS: User[] = [USERS[2]];
+export const SENT_REQUESTS: User[] = [USERS[1]];
 
 export const MESSAGES: Message[] = [
     // Conversation with Sarah (u2) - Room r1
@@ -178,7 +179,7 @@ export const ROOMS: Room[] = [
         participants: ['u1', 'u2'],
         unreadCount: 0,
         lastMessageId: 'm3',
-        createdAt: '2023-01-15T10:00:00Z',
+
     },
     {
         id: 'r2',
@@ -186,18 +187,18 @@ export const ROOMS: Room[] = [
         participants: ['u1', 'u3'],
         unreadCount: 1, // Simulating Michael sent the last message and we haven't read it (conceptually, though local user sent last in mock? Wait m5 mock says U3 sent it. So yes unread)
         lastMessageId: 'm5',
-        createdAt: '2023-02-20T14:00:00Z',
+
     },
     {
         id: 'r3',
         type: 'group',
         name: 'Weekend Trip 🏕️',
         participants: ['u1', 'u4', 'u5'],
-        admins: ['u4'],
+
         unreadCount: 2,
         lastMessageId: 'm8',
         avatar: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80',
-        createdAt: '2023-10-01T09:00:00Z',
+
     },
 ];
 
