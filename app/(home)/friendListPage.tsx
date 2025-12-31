@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, BackHandler, FlatList, TouchableOpacity, Image,
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FRIENDS, FRIEND_REQUESTS, SENT_REQUESTS, User } from '../data';
+import { FRIENDS, FRIEND_REQUESTS, SENT_REQUESTS, User } from '../../constants/data';
 
 type ListType = 'friends' | 'requests' | 'sent';
 

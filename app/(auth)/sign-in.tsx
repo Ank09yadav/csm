@@ -9,7 +9,7 @@ import { Alert, Platform, StyleSheet,Linking, Text, TouchableOpacity, View } fro
 
 export const useWarmUpBrowser = () => {
   useEffect(() => {
-    // Check for 'android' platform only for warmUp/coolDown
+    
     if (Platform.OS !== 'android') return;
 
     // Warm up the browser on mount

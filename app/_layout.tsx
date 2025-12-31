@@ -1,5 +1,5 @@
 import { ClerkProvider, ClerkLoaded, useAuth } from '@clerk/clerk-expo'
-import { Slot, useRouter, useSegments } from 'expo-router'
+import { Slot, useRouter, useSegments, useRootNavigationState } from 'expo-router' // Added useRootNavigationState
 import * as SecureStore from 'expo-secure-store'
 import { useEffect } from 'react'
 
@@ -38,22 +38,27 @@ if (!publishableKey) {
 
 function InitialLayout() {
   const { isLoaded, isSignedIn } = useAuth()
-  const segments = useSegments()
+  const segments = useSegments() as string[]
   const router = useRouter()
+  const rootNavigationState = useRootNavigationState()
 
   useEffect(() => {
     if (!isLoaded) return
+    if (!rootNavigationState?.key) return // Wait for navigation to be ready
 
     const inAuthGroup = segments[0] === '(auth)'
 
-    if (isSignedIn && inAuthGroup) {
+    if (isSignedIn && !inAuthGroup && segments.length === 0) {
+      // If user is signed in and at the root, redirect to home
+      router.replace('/(home)')
+    } else if (isSignedIn && inAuthGroup) {
       // If user is signed in and trying to access auth pages, redirect to home
       router.replace('/(home)')
     } else if (!isSignedIn && !inAuthGroup) {
       // If user is not signed in and trying to access protected pages, redirect to sign-in
       router.replace('/(auth)/sign-in')
     }
-  }, [isSignedIn, segments, isLoaded])
+  }, [isSignedIn, segments[0], isLoaded, rootNavigationState?.key])
 
   return <Slot />
 }

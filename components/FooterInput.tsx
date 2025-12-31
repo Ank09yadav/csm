@@ -19,7 +19,7 @@ export default function FooterInput({ onSend }: FooterInputProps) {
     };
 
     return (
-        <View style={[styles.inputWrapper, { paddingBottom: insets.bottom + 30 }]}>
+        <View style={[styles.inputWrapper, { paddingBottom: insets.bottom + 10 }]}>
             <TouchableOpacity style={styles.iconButton}>
                 <Ionicons name='add-circle-outline' size={28} color="#2e78b7" />
             </TouchableOpacity>
