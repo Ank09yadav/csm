@@ -4,14 +4,13 @@ import { useUser } from '@clerk/clerk-expo';
 import { useRouter, usePathname } from 'expo-router';
 import { useState } from 'react';
 import { rooms } from '../constants/data';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 export function AppHeader() {
     const { user } = useUser();
     const router = useRouter();
     const currentPath = usePathname();
     const [menuVisible, setMenuVisible] = useState(false);
-
-    // Fallback for TypeScript null error
+    const insets = useSafeAreaInsets();
     const headerTitle = user?.fullName || "Guest User";
 
     const safeNavigate = (targetPath: string) => {
@@ -45,8 +44,8 @@ export function AppHeader() {
 
     return (
         <>
-            <SafeAreaProvider>
-            <View style={styles.headerContainer}>
+
+            <View style={[styles.headerContainer, { paddingTop: insets.top }]}>
                 <View style={styles.leftContainer}>
                     <TouchableOpacity
                         onPress={() => {
@@ -112,7 +111,7 @@ export function AppHeader() {
                     </View>
                 </Pressable>
             </Modal>
-            </SafeAreaProvider>
+
         </>
     );
 }
@@ -123,9 +122,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         backgroundColor: '#2e78b7',
-        height: 60, // Standard header height
+        paddingBottom: 10,  // Add some bottom padding
+        minHeight: 60,      // Ensure strict minimum height for content
         paddingHorizontal: 10,
-        elevation: 4, // Shadow for Android
+        elevation: 4,
         shadowColor: '#000',
         shadowOpacity: 0.1,
         shadowRadius: 4,

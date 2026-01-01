@@ -22,7 +22,7 @@ const FriendListPage = () => {
         setActiveTab('friends'); // Go back to friends list first
         return true;
       }
-      router.replace('/(home)');
+      router.back();
       return true;
     };
 
@@ -89,7 +89,7 @@ const FriendListPage = () => {
       <View style={styles.header}>
         <TouchableOpacity onPress={() => {
           if (activeTab !== 'friends') setActiveTab('friends');
-          else router.replace('/(home)');
+          else router.back();
         }} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>

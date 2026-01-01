@@ -1,21 +1,14 @@
 import { ClerkProvider, ClerkLoaded, useAuth } from '@clerk/clerk-expo'
-import { Slot, useRouter, useSegments, useRootNavigationState } from 'expo-router' // Added useRootNavigationState
+import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-router' // Added useRootNavigationState
 import * as SecureStore from 'expo-secure-store'
 import { useEffect } from 'react'
 
 const tokenCache = {
+  // ... existing tokenCache implementation ...
   async getToken(key: string) {
     try {
-      const item = await SecureStore.getItemAsync(key)
-      if (item) {
-        console.log(`${key} was used 🔐 \n`)
-      } else {
-        console.log('No values stored under key: ' + key)
-      }
-      return item
-    } catch (error) {
-      console.error('SecureStore get item error: ', error)
-      await SecureStore.deleteItemAsync(key)
+      return SecureStore.getItemAsync(key)
+    } catch (err) {
       return null
     }
   },
@@ -48,19 +41,20 @@ function InitialLayout() {
 
     const inAuthGroup = segments[0] === '(auth)'
 
-    if (isSignedIn && !inAuthGroup && segments.length === 0) {
-      // If user is signed in and at the root, redirect to home
-      router.replace('/(home)')
-    } else if (isSignedIn && inAuthGroup) {
-      // If user is signed in and trying to access auth pages, redirect to home
-      router.replace('/(home)')
-    } else if (!isSignedIn && !inAuthGroup) {
-      // If user is not signed in and trying to access protected pages, redirect to sign-in
-      router.replace('/(auth)/sign-in')
+    if (isSignedIn) {
+      // If user is signed in, redirect them to home if they are in auth group or at root
+      if (inAuthGroup || segments.length === 0) {
+        router.replace('/(home)')
+      }
+    } else {
+      // If user is not signed in, redirect them to sign-in if they are not in auth group
+      if (!inAuthGroup) {
+        router.replace('/(auth)/sign-in')
+      }
     }
-  }, [isSignedIn, segments[0], isLoaded, rootNavigationState?.key])
+  }, [isSignedIn, segments, isLoaded, rootNavigationState?.key])
 
-  return <Slot />
+  return <Stack screenOptions={{ headerShown: false }} />
 }
 
 export default function RootLayout() {

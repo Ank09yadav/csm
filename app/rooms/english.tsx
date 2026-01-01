@@ -25,7 +25,7 @@ export default function ChatPage() {
             keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
         >
             {/* 1. Sub-Header (Sticky at top) */}
-            <View style={[styles.subHeader, { paddingTop: insets.top }]}>
+            <View style={styles.subHeader}>
                 <Text style={styles.subHeaderText}>English Room</Text>
             </View>
 

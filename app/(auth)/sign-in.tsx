@@ -1,15 +1,13 @@
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useCallback, useEffect } from 'react';
-import LottieView from 'lottie-react-native';
 import { useSSO } from '@clerk/clerk-expo';
-import { Redirect, router } from 'expo-router';
-import { Alert, Platform, StyleSheet,Linking, Text, TouchableOpacity, View } from 'react-native';
-
+import { router } from 'expo-router';
+import { Alert, Platform, StyleSheet, Linking, Text, TouchableOpacity, View } from 'react-native';
 
 export const useWarmUpBrowser = () => {
   useEffect(() => {
-    
+    // Check for 'android' platform only for warmUp/coolDown
     if (Platform.OS !== 'android') return;
 
     // Warm up the browser on mount
@@ -21,22 +19,25 @@ export const useWarmUpBrowser = () => {
     };
   }, []);
 };
+
 //open term and condition 
-const openConditionLink = async ()=>{
-  const url='https://csmtermsandconditions.netlify.app/'
-  const supported= await Linking.canOpenURL(url);
-  if(supported){
+const openConditionLink = async () => {
+  const url = 'https://csmtermsandconditions.netlify.app/'
+  const supported = await Linking.canOpenURL(url);
+  if (supported) {
     await Linking.openURL(url);
-  }else{
-    Alert.alert(`Don\'t know how to open url? ${url}`)
+  } else {
+    Alert.alert(`Don't know how to open url? ${url}`)
   }
 }
 
 // Handle any pending authentication sessions globally
 WebBrowser.maybeCompleteAuthSession();
+
 export default function SignInWithGoogle() {
   useWarmUpBrowser();
   const { startSSOFlow } = useSSO();
+
   const onPress = useCallback(async () => {
     try {
       const { createdSessionId, setActive, signIn, signUp } = await startSSOFlow({
@@ -49,25 +50,14 @@ export default function SignInWithGoogle() {
       // Successful Sign-In/Sign-Up via Google
       if (createdSessionId) {
         // Set the newly created session as the active session
-        setActive!({
+        await setActive!({
           session: createdSessionId,
-          // Handle navigation after session is set
-          navigate: async ({ session }) => {
-            if (session?.currentTask) {
-              console.log("Current Task Required:", session.currentTask);
-              
-              router.push('/(home)');
-              return;
-            }
-            router.push('/');
-          },
         });
+        // Navigation is handled by the root layout listener in app/_layout.tsx
       }
       else if (signIn) {
-
         console.log("Sign-in requirements missing:", signIn.status);
       }
-
       else if (signUp) {
         console.log("Sign-up requirements missing:", signUp.status);
       }
@@ -83,21 +73,20 @@ export default function SignInWithGoogle() {
 
   return (
     <View style={styles.container}>
-      <View>
-        
-      </View>
       <View style={styles.card}>
-        <Text style={styles.title}>Welcome to csm</Text>
+        <Text style={styles.title}>Welcome to CSM</Text>
         <Text style={styles.subtitle}>Sign in to continue</Text>
-        <Text style={styles.baseText}>
-      By signing in, you agree to our{' '}
-      <Text style={styles.linkText} onPress={openConditionLink}>
-        Terms and Conditions
-      </Text>
-    </Text>
+
         <TouchableOpacity style={styles.button} onPress={onPress}>
           <Text style={styles.buttonText}>Sign in with Google</Text>
         </TouchableOpacity>
+
+        <Text style={styles.baseText}>
+          By signing in, you agree to our{' '}
+          <Text style={styles.linkText} onPress={openConditionLink}>
+            Terms and Conditions
+          </Text>
+        </Text>
       </View>
     </View>
   );
@@ -142,12 +131,22 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     width: '100%',
     alignItems: 'center',
+    marginBottom: 20,
   },
   buttonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
   },
-  baseText: { color: '#333', fontSize: 14 },
-  linkText: { color: '#2e78b7', fontWeight: 'bold', textDecorationLine: 'underline' },
+  baseText: {
+    color: '#888',
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  linkText: {
+    color: '#2e78b7',
+    fontWeight: 'bold',
+    textDecorationLine: 'underline'
+  },
 });

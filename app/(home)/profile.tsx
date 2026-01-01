@@ -32,7 +32,6 @@ const Profile = () => {
         try {
             setLoading(true);
             await signOut();
-            router.replace('/(auth)/sign-in');
         } catch (error) {
             console.error("Error signing out", error);
         } finally {
