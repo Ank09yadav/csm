@@ -16,9 +16,9 @@
 
 // 1. User Entity
 export interface User {
-    id: string;              // Primary Key (UUID)
-    email: string;           // Indexed, Unique
-    name: string;            // Display Name
+    id: string;              
+    email: string;           
+    name: string;           
     avatarUrl: string | null;
     bio: string | null;
 
@@ -33,12 +33,12 @@ export interface User {
 
 // 2. Channel (Public Chat Routes like 'Hindi', 'Songs')
 export interface Channel {
-    id: string;              // Primary Key (e.g., 'hindi', 'song')
-    name: string;            // Display Name (e.g., "Hindi Room")
-    slug: string;            // URL friendly ID
-    icon: string;            // Icon name for UI (e.g., 'language', 'musical-notes')
+    id: string;             
+    name: string;            
+    slug: string;         
+    icon: string;           
     description?: string;
-    activeUserCount: number; // Computed/Cached value
+    activeUserCount: number; 
 }
 
 // 3. Conversation (Private DMs & Groups)

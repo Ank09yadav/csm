@@ -1,10 +1,6 @@
 
 import { Channel } from './models';
 
-// This file contains the Static Configuration for the Public Chat Rooms (Channels).
-// Dynamic data (Users, Conversations, Messages) has been moved to 'mocks.ts'
-// or should be fetched from the database.
-
 export const CHANNELS: Channel[] = [
     {
         id: 'hindi',
