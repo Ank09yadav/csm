@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FooterInput from '../../components/FooterInput'; // Assuming this is the correct path based on previous context
-import { getUser, User } from '../../constants/data'; // Adjust path if needed
+import { getUser, User } from '../../constants/mocks'; // Adjust path if needed
 
 const { width } = Dimensions.get('window');
 
@@ -62,7 +62,7 @@ export default function PrivateChatPage() {
                             <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 10 }}>
                                 <Ionicons name="arrow-back" size={24} color="#333" />
                             </TouchableOpacity>
-                            <Image source={{ uri: friend.avatar }} style={styles.avatar} />
+                            <Image source={{ uri: friend.avatarUrl || undefined }} style={styles.avatar} />
                             <View>
                                 <Text style={styles.headerName}>{friend.name}</Text>
                                 <Text style={styles.headerStatus}>{friend.status}</Text>

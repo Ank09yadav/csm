@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, BackHandler, FlatList, TouchableOpacity, Image,
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FRIENDS, FRIEND_REQUESTS, SENT_REQUESTS, User } from '../../constants/data';
+import { FRIENDS, FRIEND_REQUESTS, SENT_REQUESTS, User } from '../../constants/mocks';
 
 type ListType = 'friends' | 'requests' | 'sent';
 
@@ -59,7 +59,7 @@ const FriendListPage = () => {
       activeOpacity={0.7}
     >
       <View style={styles.avatarContainer}>
-        <Image source={{ uri: item.avatar }} style={styles.avatar} />
+        <Image source={{ uri: item.avatarUrl || undefined }} style={styles.avatar} />
         {item.status === 'online' && <View style={styles.onlineBadge} />}
       </View>
       <View style={styles.infoContainer}>
