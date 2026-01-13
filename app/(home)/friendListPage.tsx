@@ -3,21 +3,22 @@ import { StyleSheet, Text, View, BackHandler, FlatList, TouchableOpacity, Image,
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FRIENDS, FRIEND_REQUESTS, SENT_REQUESTS, User } from '../../constants/mocks';
+import { User } from '../../constants/models';
 
 type ListType = 'friends' | 'requests' | 'sent';
 
 const FriendListPage = () => {
   const [activeTab, setActiveTab] = useState<ListType>('friends');
-  const [friends, setFriends] = useState<User[]>(FRIENDS);
-  const [requests, setRequests] = useState<User[]>(FRIEND_REQUESTS);
-  const [sent, setSent] = useState<User[]>(SENT_REQUESTS);
+  const [friends, setFriends] = useState<User[]>();
+  const [requests, setRequests] = useState<User[]>();
+  const [sent, setSent] = useState<User[]>();
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
     const backAction = () => {
+      o
       if (activeTab !== 'friends') {
         setActiveTab('friends'); // Go back to friends list first
         return true;

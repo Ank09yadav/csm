@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'expo-router'; // Move usage to top level
+import { useRouter } from 'expo-router';
 import {
     StyleSheet,
     TextInput,
@@ -12,46 +12,48 @@ import {
     Platform,
     BackHandler
 } from 'react-native';
-import { useUser, useAuth } from '@clerk/clerk-expo';
+import { useAuth } from '../../context/AuthContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 const Profile = () => {
-    // 1. Correctly initialize hooks at the top level
     const router = useRouter();
-    const { user, isLoaded } = useUser();
-    const { signOut } = useAuth();
+    const { user, signOut, isLoading: authLoading } = useAuth();
     const insets = useSafeAreaInsets();
 
     const [about, setAbout] = useState('');
     const [college, setCollege] = useState('');
     const [loading, setLoading] = useState(false);
 
-    //Fixed Sign Out Function
     const onSignOutPress = async () => {
         try {
             setLoading(true);
             await signOut();
+            // Router automatically handles redirect based on token state
         } catch (error) {
             console.error("Error signing out", error);
         } finally {
             setLoading(false);
         }
     };
+
     useEffect(() => {
         const backAction = () => {
-            router.replace('/(home)'); // Always go back to Home
+            router.replace('/(home)');
             return true;
         };
 
         const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
         return () => backHandler.remove();
     }, []);
+
     const updateDetails = async () => {
-        // Implementation here
+        // Implementation for updating details
+        // You would likely call an API endpoint here using the token from useAuth()
+        alert('Update functionality to be implemented');
     };
 
-    if (!isLoaded) {
+    if (authLoading) {
         return (
             <View style={styles.centered}>
                 <ActivityIndicator size="large" color="#2e78b7" />
@@ -78,9 +80,9 @@ const Profile = () => {
                 <View style={styles.content}>
                     <Text style={styles.header}>Edit Profile</Text>
 
-                    <Text style={styles.label}>Email Address</Text>
+                    <Text style={styles.label}>Username</Text>
                     <View style={[styles.input, styles.disabledInput]}>
-                        <Text style={styles.disabledText}>{user?.primaryEmailAddress?.emailAddress}</Text>
+                        <Text style={styles.disabledText}>{user?.username || 'Guest'}</Text>
                     </View>
 
                     <Text style={styles.label}>About You</Text>

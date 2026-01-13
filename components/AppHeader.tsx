@@ -1,17 +1,18 @@
 import { View, Text, TouchableOpacity, Image, Modal, Pressable, StyleSheet, ToastAndroid } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useUser } from '@clerk/clerk-expo';
+import { useAuth } from '../context/AuthContext';
 import { useRouter, usePathname } from 'expo-router';
 import { useState } from 'react';
 import { rooms } from '../constants/data';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 export function AppHeader() {
-    const { user } = useUser();
+    const { user } = useAuth();
     const router = useRouter();
     const currentPath = usePathname();
     const [menuVisible, setMenuVisible] = useState(false);
     const insets = useSafeAreaInsets();
-    const headerTitle = user?.fullName || "Guest User";
+    const headerTitle = user?.username || "Guest User";
 
     const safeNavigate = (targetPath: string) => {
         if (currentPath === targetPath) {
@@ -55,11 +56,10 @@ export function AppHeader() {
                                 safeNavigate('/profile');
                         }}
                     >
-                        {user?.imageUrl ? (
-                            <Image source={{ uri: user.imageUrl }} style={styles.profileImage} />
-                        ) : (
-                            <View style={[styles.profileImage, { backgroundColor: '#ccc' }]} />
-                        )}
+                        {/* Placeholder for user image if not available in auth context yet, or user.image */}
+                        <View style={[styles.profileImage, { backgroundColor: '#ccc', justifyContent: 'center', alignItems: 'center' }]}>
+                            <Text style={{ fontSize: 20, color: '#fff' }}>{headerTitle.charAt(0).toUpperCase()}</Text>
+                        </View>
                     </TouchableOpacity>
                     <Text style={styles.headerTitle} numberOfLines={1}>{headerTitle}</Text>
                 </View>

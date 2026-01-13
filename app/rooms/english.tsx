@@ -1,52 +1,93 @@
-import React from 'react';
-import { useUser } from '@clerk/clerk-expo';
+import React, { useEffect, useState, useRef } from 'react';
 import {
     StyleSheet, Text, View,
     KeyboardAvoidingView, ScrollView, Platform
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FooterInput from '../../components/FooterInput';
+import { useSocket } from '../../context/SocketContext';
+import { useAuth } from '../../context/AuthContext';
+import { useRouter } from 'expo-router';
+
+interface Message {
+    _id: string;
+    content: string;
+    sender: {
+        _id: string;
+        username: string;
+        name?: string;
+        image?: string;
+    };
+    createdAt: string;
+}
 
 export default function ChatPage() {
     const insets = useSafeAreaInsets();
-    const { user } = useUser();
-    const router = useRouter();
+    const { user } = useAuth();
+    const { socket, isConnected } = useSocket();
+    const [messages, setMessages] = useState<Message[]>([]);
+    const scrollViewRef = useRef<ScrollView>(null);
+    const ROOM_NAME = 'english';
 
-    const handleSend = (msg: string) => {
-        console.log('Message sent:', msg);
+    useEffect(() => {
+        if (socket && isConnected) {
+            console.log("Joining room:", ROOM_NAME);
+            socket.emit('joinPublicRoom', ROOM_NAME);
+
+            socket.on('newPublicMessage', (msg: Message) => {
+                setMessages((prev) => [...prev, msg]);
+                setTimeout(() => {
+                    scrollViewRef.current?.scrollToEnd({ animated: true });
+                }, 100);
+            });
+
+            return () => {
+                socket.off('newPublicMessage');
+            };
+        }
+    }, [socket, isConnected]);
+
+    const handleSend = (msgContent: string) => {
+        if (socket && isConnected) {
+            socket.emit('sendPublicMessage', {
+                room: ROOM_NAME,
+                content: msgContent,
+                type: 'TEXT'
+            });
+        }
     };
 
     return (
         <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             style={styles.mainWrapper}
-            // Offset matches your header height to prevent overlapping
             keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
         >
-            {/* 1. Sub-Header (Sticky at top) */}
             <View style={styles.subHeader}>
-                <Text style={styles.subHeaderText}>English Room</Text>
+                <Text style={styles.subHeaderText}>English Room {isConnected ? '(Live)' : '(Connecting...)'}</Text>
             </View>
 
-            {/* 2. Message List (Scrollable Area) */}
             <ScrollView
+                ref={scrollViewRef}
                 style={styles.chatContainer}
                 contentContainerStyle={{ padding: 15, paddingBottom: 20 }}
                 keyboardShouldPersistTaps="handled"
+                onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
             >
-                <View style={styles.receivedMessage}>
-                    <Text style={styles.messageText}>Hello! This is the first message.</Text>
-                    <Text style={styles.timestamp}>12:00 PM</Text>
-                </View>
-
-                {/* Placeholder for sent messages */}
-                <View style={styles.sentMessage}>
-                    <Text style={styles.sentMessageText}>Hi! I can see this works perfectly.</Text>
-                </View>
+                {messages.map((msg, index) => {
+                    const isMe = msg.sender._id === user?._id;
+                    return (
+                        <View key={msg._id || index} style={isMe ? styles.sentMessage : styles.receivedMessage}>
+                            {!isMe && <Text style={styles.senderName}>{msg.sender.username || msg.sender.name || 'Unknown'}</Text>}
+                            <Text style={isMe ? styles.sentMessageText : styles.messageText}>{msg.content}</Text>
+                            <Text style={styles.timestamp}>
+                                {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </Text>
+                        </View>
+                    );
+                })}
             </ScrollView>
 
-            {/* 3. Input Bar (Sticky at bottom) */}
             <FooterInput onSend={handleSend} />
         </KeyboardAvoidingView>
     );
@@ -94,5 +135,6 @@ const styles = StyleSheet.create({
     },
     messageText: { color: '#333' },
     sentMessageText: { color: '#fff' },
-    timestamp: { fontSize: 10, color: '#999', marginTop: 4, textAlign: 'right' },
+    senderName: { fontSize: 12, color: '#2e78b7', marginBottom: 4, fontWeight: 'bold' },
+    timestamp: { fontSize: 10, color: '#ccc', marginTop: 4, textAlign: 'right' },
 });

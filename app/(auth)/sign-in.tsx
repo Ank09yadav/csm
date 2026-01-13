@@ -1,92 +1,86 @@
-import * as AuthSession from 'expo-auth-session';
-import * as WebBrowser from 'expo-web-browser';
-import React, { useCallback, useEffect } from 'react';
-import { useSSO } from '@clerk/clerk-expo';
+import React, { useState } from 'react';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { useAuth } from '../../context/AuthContext';
 import { router } from 'expo-router';
-import { Alert, Platform, StyleSheet, Linking, Text, TouchableOpacity, View } from 'react-native';
 
-export const useWarmUpBrowser = () => {
-  useEffect(() => {
-    // Check for 'android' platform only for warmUp/coolDown
-    if (Platform.OS !== 'android') return;
+// Adjust this URL to match your server configuration
+const API_URL = 'https://csmserver.onrender.com/api/auth';
 
-    // Warm up the browser on mount
-    void WebBrowser.warmUpAsync();
 
-    return () => {
-      // Cleanup: cool down the browser on unmount
-      void WebBrowser.coolDownAsync();
-    };
-  }, []);
-};
+export default function AuthScreen() {
+  const [isLogin, setIsLogin] = useState(true);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { signIn } = useAuth();
 
-//open term and condition 
-const openConditionLink = async () => {
-  const url = 'https://csmtermsandconditions.netlify.app/'
-  const supported = await Linking.canOpenURL(url);
-  if (supported) {
-    await Linking.openURL(url);
-  } else {
-    Alert.alert(`Don't know how to open url? ${url}`)
-  }
-}
+  const handleSubmit = async () => {
+    if (!username || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
 
-// Handle any pending authentication sessions globally
-WebBrowser.maybeCompleteAuthSession();
-
-export default function SignInWithGoogle() {
-  useWarmUpBrowser();
-  const { startSSOFlow } = useSSO();
-
-  const onPress = useCallback(async () => {
+    setLoading(true);
     try {
-      const { createdSessionId, setActive, signIn, signUp } = await startSSOFlow({
-        strategy: 'oauth_google',
-        redirectUrl: AuthSession.makeRedirectUri({
-          scheme: 'csm',
-        }),
+      const endpoint = isLogin ? '/login' : '/register';
+      const res = await fetch(`${API_URL}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
       });
 
-      // Successful Sign-In/Sign-Up via Google
-      if (createdSessionId) {
-        // Set the newly created session as the active session
-        await setActive!({
-          session: createdSessionId,
-        });
-        // Navigation is handled by the root layout listener in app/_layout.tsx
-      }
-      else if (signIn) {
-        console.log("Sign-in requirements missing:", signIn.status);
-      }
-      else if (signUp) {
-        console.log("Sign-up requirements missing:", signUp.status);
-      }
+      const data = await res.json();
 
-    } catch (err) {
-      console.error("Clerk SSO Error:", JSON.stringify(err, null, 2));
-      Alert.alert(
-        "Authentication Failed",
-        "Could not complete sign-in. Please check your network or try again."
-      );
+      if (!res.ok) {
+        Alert.alert('Error', data.error || 'Something went wrong');
+      } else {
+        await signIn(data.token, data.user);
+        // Router replacement handled by AuthProvider/RootLayout logic
+      }
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', 'Network request failed. Is the server running?');
+    } finally {
+      setLoading(false);
     }
-  }, [startSSOFlow]);
+  };
 
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <Text style={styles.title}>Welcome to CSM</Text>
-        <Text style={styles.subtitle}>Sign in to continue</Text>
+        <Text style={styles.title}>{isLogin ? 'Welcome Back' : 'Create Account'}</Text>
+        <Text style={styles.subtitle}>{isLogin ? 'Sign in to continue' : 'Sign up to get started'}</Text>
 
-        <TouchableOpacity style={styles.button} onPress={onPress}>
-          <Text style={styles.buttonText}>Sign in with Google</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Username"
+          value={username}
+          onChangeText={setUsername}
+          autoCapitalize="none"
+          placeholderTextColor="#aaa"
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          placeholderTextColor="#aaa"
+        />
+
+        <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={loading}>
+          {loading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={styles.buttonText}>{isLogin ? 'Sign In' : 'Sign Up'}</Text>
+          )}
         </TouchableOpacity>
 
-        <Text style={styles.baseText}>
-          By signing in, you agree to our{' '}
-          <Text style={styles.linkText} onPress={openConditionLink}>
-            Terms and Conditions
+        <TouchableOpacity onPress={() => setIsLogin(!isLogin)} style={{ padding: 10 }}>
+          <Text style={styles.switchText}>
+            {isLogin ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
           </Text>
-        </Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -124,6 +118,16 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 30,
   },
+  input: {
+    width: '100%',
+    padding: 15,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    marginBottom: 15,
+    backgroundColor: '#f9f9f9',
+    fontSize: 16,
+  },
   button: {
     backgroundColor: '#2e78b7',
     paddingVertical: 14,
@@ -138,15 +142,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  baseText: {
-    color: '#888',
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-  linkText: {
+  switchText: {
     color: '#2e78b7',
-    fontWeight: 'bold',
-    textDecorationLine: 'underline'
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
