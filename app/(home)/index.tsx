@@ -49,15 +49,7 @@ export default function ChatPage() {
   }, [socket, isConnected]);
 
   const handleSend = (msgContent: string) => {
-    if (socket && isConnected) {
-      socket.emit('sendPublicMessage', {
-        room: ROOM_NAME,
-        content: msgContent,
-        type: 'TEXT'
-      });
-    } else {
-      console.log("Socket not connected");
-    }
+    // Optional
   };
 
   const handleUserAction = (targetUser: { _id: string, username: string }) => {
@@ -136,7 +128,7 @@ export default function ChatPage() {
         })}
       </ScrollView>
 
-      <FooterInput onSend={handleSend} />
+      <FooterInput onSend={handleSend} chatType="public" chatId={ROOM_NAME} />
     </KeyboardAvoidingView>
   );
 }

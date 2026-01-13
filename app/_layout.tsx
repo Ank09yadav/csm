@@ -24,7 +24,7 @@ function InitialLayout() {
     } else {
       // If user is not signed in, redirect them to sign-in if they are not in auth group
       if (!inAuthGroup) {
-        router.replace('/(auth)/sign-in');
+        router.replace('/(auth)');
       }
     }
   }, [token, segments, isLoading, rootNavigationState?.key]);

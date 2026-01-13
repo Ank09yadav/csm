@@ -127,27 +127,7 @@ export default function PrivateChatPage() {
 
 
     const handleSend = (text: string) => {
-        if (!conversationId || !socket) return;
-
-        // Optimistic UI
-        /*
-        const tempMsg: Message = {
-            _id: Date.now().toString(),
-            content: text,
-            sender: { 
-                _id: currentUser!._id, 
-                username: currentUser!.username 
-            },
-            createdAt: new Date().toISOString()
-        };
-        setMessages(prev => [...prev, tempMsg]);
-        */
-
-        socket.emit('sendPrivateMessage', {
-            conversationId,
-            content: text,
-            type: 'TEXT'
-        });
+        // Optimistic UI or other side effects can go here
     };
 
     if (loading || !targetUser) {
@@ -218,7 +198,7 @@ export default function PrivateChatPage() {
                     })}
                 </ScrollView>
 
-                <FooterInput onSend={handleSend} />
+                <FooterInput onSend={handleSend} chatType="private" chatId={conversationId || undefined} />
             </KeyboardAvoidingView>
 
             {/* Menu Modal */}

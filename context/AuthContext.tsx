@@ -32,7 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        async function loadAuth() {
+        async function loadAuth() { 
             try {
                 const storedToken = await SecureStore.getItemAsync('authToken');
                 const storedUser = await SecureStore.getItemAsync('authUser');
