@@ -1,51 +1,160 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Modal, ScrollView, Platform, Alert, Dimensions, KeyboardAvoidingView } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Modal, ScrollView, Platform, Alert, Dimensions, KeyboardAvoidingView, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import FooterInput from '../../components/FooterInput'; // Assuming this is the correct path based on previous context
-import { getUser, User } from '../../constants/mocks'; // Adjust path if needed
+import FooterInput from '../../components/FooterInput';
+import { useAuth } from '../../context/AuthContext';
+import { useSocket } from '../../context/SocketContext';
 
-const { width } = Dimensions.get('window');
+const API_BASE = 'https://csmserver.onrender.com/api';
+
+interface Message {
+    _id: string;
+    content: string;
+    sender: {
+        _id: string;
+        username: string;
+        name?: string;
+        image?: string;
+    };
+    createdAt: string;
+}
 
 export default function PrivateChatPage() {
-    const { privateChat: userId } = useLocalSearchParams<{ privateChat: string }>();
+    const { privateChat: targetUserIdProp } = useLocalSearchParams<{ privateChat: string }>();
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { token, user: currentUser } = useAuth();
+    const { socket } = useSocket();
+
+    // Ensure string
+    const targetUserId = Array.isArray(targetUserIdProp) ? targetUserIdProp[0] : targetUserIdProp;
+
     const [menuVisible, setMenuVisible] = useState(false);
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [conversationId, setConversationId] = useState<string | null>(null);
+    const [targetUser, setTargetUser] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
 
-    // Find the friend/user details
-    // Ensure userId is treated as a string even if it comes as an array
-    const targetUserId = Array.isArray(userId) ? userId[0] : userId;
-    const friend = getUser(targetUserId || '') as User | undefined;
+    const scrollViewRef = useRef<ScrollView>(null);
 
-    // Dummy messages for UI visualization
-    const [messages, setMessages] = useState([
-        { id: '1', text: 'Hey, how are you?', sender: 'them', time: '10:00 AM' },
-        { id: '2', text: 'I am good! just working on the new project.', sender: 'me', time: '10:05 AM' },
-        { id: '3', text: 'That sounds great! Can\'t wait to see it.', sender: 'them', time: '10:07 AM' },
-    ]);
+    //Fetch Target User Details
+    useEffect(() => {
+        async function fetchUserAndConversation() {
+            try {
+                if (!targetUserId || !token) return;
+
+                // Get User Profile
+                const userRes = await fetch(`${API_BASE}/user/${targetUserId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const userData = await userRes.json();
+                if (userRes.ok) {
+                    setTargetUser(userData.user);
+                } else {
+                    Alert.alert("Error", "User not found");
+                    router.back();
+                    return;
+                }
+
+                // Get/Create Conversation
+                const convRes = await fetch(`${API_BASE}/conversations`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ targetUserId })
+                });
+                const convData = await convRes.json();
+
+                if (convRes.ok) {
+                    setConversationId(convData.conversation._id);
+                    // Fetch existing messages
+                    fetchMessages(convData.conversation._id);
+                }
+
+            } catch (e) {
+                console.error(e);
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchUserAndConversation();
+    }, [targetUserId, token]);
+
+    // Fetch Messages
+    async function fetchMessages(convId: string) {
+        try {
+            const res = await fetch(`${API_BASE}/messages?conversationId=${convId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setMessages(data.messages);
+                setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: false }), 100);
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    // Socket Listeners
+    useEffect(() => {
+        if (!socket || !conversationId) return;
+
+
+        socket.emit('joinPublicRoom', conversationId);
+
+        const handleNewMessage = (msg: Message) => {
+            if (msg.sender._id === currentUser?._id) return; // We might handle our own optmistically
+            // Actually, server sends to room, so we receive our own too.
+            // Let's just append if ID not present
+            setMessages(prev => {
+                if (prev.some(m => m._id === msg._id)) return prev;
+                return [...prev, msg];
+            });
+            setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
+        };
+
+        socket.on('newPrivateMessage', handleNewMessage);
+
+        return () => {
+            socket.off('newPrivateMessage', handleNewMessage);
+        };
+    }, [socket, conversationId]);
+
 
     const handleSend = (text: string) => {
-        setMessages([...messages, {
-            id: Date.now().toString(),
-            text,
-            sender: 'me',
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }]);
+        if (!conversationId || !socket) return;
+
+        // Optimistic UI
+        /*
+        const tempMsg: Message = {
+            _id: Date.now().toString(),
+            content: text,
+            sender: { 
+                _id: currentUser!._id, 
+                username: currentUser!.username 
+            },
+            createdAt: new Date().toISOString()
+        };
+        setMessages(prev => [...prev, tempMsg]);
+        */
+
+        socket.emit('sendPrivateMessage', {
+            conversationId,
+            content: text,
+            type: 'TEXT'
+        });
     };
 
-    const handleMenuOption = (option: string) => {
-        setMenuVisible(false);
-        Alert.alert('Action', `You selected: ${option}`);
-        // Implement actual logic here
-    };
-
-    if (!friend) {
+    if (loading || !targetUser) {
         return (
-            <View style={styles.container}>
-                <Stack.Screen options={{ title: 'Chat' }} />
-                <Text style={{ textAlign: 'center', marginTop: 20 }}>User not found</Text>
+            <View style={[styles.container, { justifyContent: 'center' }]}>
+                <Stack.Screen options={{ headerShown: false }} />
+                <ActivityIndicator size="large" color="#2e78b7" />
             </View>
         );
     }
@@ -62,10 +171,10 @@ export default function PrivateChatPage() {
                             <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 10 }}>
                                 <Ionicons name="arrow-back" size={24} color="#333" />
                             </TouchableOpacity>
-                            <Image source={{ uri: friend.avatarUrl || undefined }} style={styles.avatar} />
+                            <Image source={{ uri: targetUser.image || 'https://via.placeholder.com/40' }} style={styles.avatar} />
                             <View>
-                                <Text style={styles.headerName}>{friend.name}</Text>
-                                <Text style={styles.headerStatus}>{friend.status}</Text>
+                                <Text style={styles.headerName}>{targetUser.name || targetUser.username}</Text>
+                                <Text style={styles.headerStatus}>{targetUser.isOnline ? 'Online' : 'Offline'}</Text>
                             </View>
                         </View>
                     ),
@@ -77,32 +186,36 @@ export default function PrivateChatPage() {
                 }}
             />
 
-            {/* Chat Area */}
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={{ flex: 1 }}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0} // Adjust based on header height
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
             >
                 <ScrollView
+                    ref={scrollViewRef}
                     style={styles.chatArea}
                     contentContainerStyle={{ padding: 15, paddingBottom: 20 }}
+                    onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
                 >
-                    {messages.map((msg) => (
-                        <View
-                            key={msg.id}
-                            style={[
-                                styles.messageBubble,
-                                msg.sender === 'me' ? styles.myMessage : styles.theirMessage
-                            ]}
-                        >
-                            <Text style={[styles.messageText, msg.sender === 'me' ? { color: '#fff' } : { color: '#333' }]}>
-                                {msg.text}
-                            </Text>
-                            <Text style={[styles.timeText, msg.sender === 'me' ? { color: 'rgba(255,255,255,0.7)' } : { color: '#999' }]}>
-                                {msg.time}
-                            </Text>
-                        </View>
-                    ))}
+                    {messages.map((msg, index) => {
+                        const isMe = msg.sender._id === currentUser?._id;
+                        return (
+                            <View
+                                key={msg._id || index}
+                                style={[
+                                    styles.messageBubble,
+                                    isMe ? styles.myMessage : styles.theirMessage
+                                ]}
+                            >
+                                <Text style={[styles.messageText, isMe ? { color: '#fff' } : { color: '#333' }]}>
+                                    {msg.content}
+                                </Text>
+                                <Text style={[styles.timeText, isMe ? { color: 'rgba(255,255,255,0.7)' } : { color: '#999' }]}>
+                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </Text>
+                            </View>
+                        );
+                    })}
                 </ScrollView>
 
                 <FooterInput onSend={handleSend} />
@@ -121,30 +234,17 @@ export default function PrivateChatPage() {
                     onPress={() => setMenuVisible(false)}
                 >
                     <View style={[styles.menuContainer, { top: insets.top + 50 }]}>
-                        <TouchableOpacity style={styles.menuItem} onPress={() => handleMenuOption('Remove friend')}>
-                            <Ionicons name="person-remove-outline" size={20} color="#ff4444" />
-                            <Text style={[styles.menuText, { color: '#ff4444' }]}>Remove friend</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.menuItem} onPress={() => handleMenuOption('Report user')}>
-                            <Ionicons name="flag-outline" size={20} color="#333" />
-                            <Text style={styles.menuText}>Report user</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.menuItem} onPress={() => handleMenuOption('Mute notification')}>
-                            <Ionicons name="notifications-off-outline" size={20} color="#333" />
-                            <Text style={styles.menuText}>Mute notification</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.menuItem} onPress={() => handleMenuOption('Block')}>
-                            <Ionicons name="ban-outline" size={20} color="#333" />
-                            <Text style={styles.menuText}>Block</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.menuItem} onPress={() => handleMenuOption('Clear chat')}>
-                            <Ionicons name="trash-outline" size={20} color="#333" />
-                            <Text style={styles.menuText}>Clear chat</Text>
+                        {/* 
+                            Implement actions if needed. 
+                            For now just placeholder or perform actual actions via API 
+                        */}
+                        <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
+                            <Ionicons name="close-circle-outline" size={20} color="#333" />
+                            <Text style={styles.menuText}>Close</Text>
                         </TouchableOpacity>
                     </View>
                 </TouchableOpacity>
             </Modal>
-
         </View>
     );
 }
@@ -172,7 +272,7 @@ const styles = StyleSheet.create({
     },
     headerStatus: {
         fontSize: 12,
-        color: '#4CAF50', // Green for online, could be dynamic
+        color: '#4CAF50',
     },
     chatArea: {
         flex: 1,
@@ -207,8 +307,6 @@ const styles = StyleSheet.create({
         marginTop: 5,
         alignSelf: 'flex-end',
     },
-
-    // Menu Styles
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.1)',

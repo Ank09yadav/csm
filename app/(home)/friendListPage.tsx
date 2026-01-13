@@ -4,21 +4,61 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { User } from '../../constants/models';
+import { useAuth } from '../../context/AuthContext';
 
 type ListType = 'friends' | 'requests' | 'sent';
 
 const FriendListPage = () => {
   const [activeTab, setActiveTab] = useState<ListType>('friends');
-  const [friends, setFriends] = useState<User[]>();
-  const [requests, setRequests] = useState<User[]>();
-  const [sent, setSent] = useState<User[]>();
+  const [friends, setFriends] = useState<User[]>([]);
+  const [requests, setRequests] = useState<User[]>([]);
+  const [sent, setSent] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { token } = useAuth();
+
+  const API_URL = 'https://csmserver.onrender.com/api/user/friends';
+
+  useEffect(() => {
+    fetchData();
+  }, [token]);
+
+  const fetchData = async () => {
+    if (!token) return;
+    try {
+      setLoading(true);
+      const res = await fetch(API_URL, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        // Map backend fields to frontend interface if needed, or just use as is if compatible
+        // Backend: _id, image, about, name, username
+        // UI expects: id, avatarUrl, bio, name
+        const mapUser = (u: any) => ({
+          id: u._id,
+          name: u.name || u.username,
+          avatarUrl: u.image,
+          bio: u.about,
+          status: u.isOnline ? 'online' : 'offline',
+          email: u.email || ''
+        } as User);
+
+        setFriends(data.friends.map(mapUser));
+        setRequests(data.friendRequests.map(mapUser));
+        setSent(data.sentRequests.map(mapUser));
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const backAction = () => {
-      o
       if (activeTab !== 'friends') {
         setActiveTab('friends'); // Go back to friends list first
         return true;
@@ -60,7 +100,7 @@ const FriendListPage = () => {
       activeOpacity={0.7}
     >
       <View style={styles.avatarContainer}>
-        <Image source={{ uri: item.avatarUrl || undefined }} style={styles.avatar} />
+        <Image source={{ uri: item.avatarUrl || 'https://via.placeholder.com/50' }} style={styles.avatar} />
         {item.status === 'online' && <View style={styles.onlineBadge} />}
       </View>
       <View style={styles.infoContainer}>
