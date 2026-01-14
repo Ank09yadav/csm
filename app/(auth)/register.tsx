@@ -53,7 +53,7 @@ export default function RegisterScreen() {
     return (
         <AuthLayout
             title="Create Account"
-            subtitle="Join us and start chatting"
+            subtitle="sign up to continue"
         >
             <AuthInput
                 placeholder="Username"

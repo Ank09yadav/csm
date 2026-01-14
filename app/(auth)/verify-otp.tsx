@@ -26,7 +26,7 @@ export default function VerifyOtpScreen() {
         setLoading(true);
         try {
             await authService.verifyOtp(email, otp);
-            router.push({ pathname: '/(auth)/reset-password', params: { email, otp } });
+            router.push({ pathname: '/(auth)/reset-password' as any, params: { email, otp } });
         } catch (error: any) {
             Alert.alert('Verification Failed', error.message);
         } finally {

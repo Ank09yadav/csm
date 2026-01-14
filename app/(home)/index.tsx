@@ -1,14 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
-  StyleSheet, Text, View,
-  KeyboardAvoidingView, ScrollView, Platform, ActivityIndicator, TouchableOpacity, Alert
+  StyleSheet, Text, View, Image,
+  KeyboardAvoidingView, ScrollView, Platform, TouchableOpacity, Alert
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FooterInput from '@/components/FooterInput';
 import { useSocket } from '../../context/SocketContext';
 import { useAuth } from '../../context/AuthContext';
-
-const API_URL = 'https://csmserver.onrender.com/api/user';
+import { Ionicons } from '@expo/vector-icons';
 
 interface Message {
   _id: string;
@@ -24,11 +23,11 @@ interface Message {
 
 export default function ChatPage() {
   const insets = useSafeAreaInsets();
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const { socket, isConnected } = useSocket();
   const [messages, setMessages] = useState<Message[]>([]);
   const scrollViewRef = useRef<ScrollView>(null);
-  const ROOM_NAME = 'hindi'; // Default room
+  const ROOM_NAME = 'hindi';
 
   useEffect(() => {
     if (socket && isConnected) {
@@ -37,9 +36,6 @@ export default function ChatPage() {
 
       socket.on('newPublicMessage', (msg: Message) => {
         setMessages((prev) => [...prev, msg]);
-        setTimeout(() => {
-          scrollViewRef.current?.scrollToEnd({ animated: true });
-        }, 100);
       });
 
       return () => {
@@ -48,59 +44,24 @@ export default function ChatPage() {
     }
   }, [socket, isConnected]);
 
+  useEffect(() => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  }, [messages]);
+
   const handleSend = (msgContent: string) => {
-    // Optional
-  };
-
-  const handleUserAction = (targetUser: { _id: string, username: string }) => {
-    Alert.alert(
-      `Manage ${targetUser.username}`,
-      "What would you like to do?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Block User",
-          style: "destructive",
-          onPress: () => performAction('block', targetUser._id)
-        },
-        {
-          text: "Report User",
-          style: "destructive",
-          onPress: () => performAction('report', targetUser._id)
-        }
-      ]
-    );
-  };
-
-  const performAction = async (action: 'block' | 'report', targetUserId: string) => {
-    try {
-      const res = await fetch(`${API_URL}/${action}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ targetUserId })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        Alert.alert("Success", data.message);
-      } else {
-        Alert.alert("Error", data.error || "Action failed");
-      }
-    } catch (e) {
-      Alert.alert("Error", "Network error");
-    }
+    // Handled by FooterInput via socket
   };
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.mainWrapper}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
-      <View style={styles.subHeader}>
-        <Text style={styles.subHeaderText}>Hindi Room {isConnected ? '(Live)' : '(Connecting...)'}</Text>
+      <View style={[styles.subHeader, { paddingTop: insets.top + 10, height: 60 + insets.top }]}>
+        <Text style={styles.subHeaderText}>Hindi Room {isConnected ? '🟢' : '🔴'}</Text>
       </View>
 
       <ScrollView
@@ -111,18 +72,31 @@ export default function ChatPage() {
         onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
       >
         {messages.map((msg, index) => {
-          const isMe = msg.sender._id === user?._id;
+          const isMe = msg.sender._id === (user as any)?._id || msg.sender._id === (user as any)?.userId;
+          const showAvatar = !isMe;
+
           return (
-            <View key={msg._id || index} style={isMe ? styles.sentMessage : styles.receivedMessage}>
-              {!isMe && (
-                <TouchableOpacity onPress={() => handleUserAction(msg.sender)}>
-                  <Text style={styles.senderName}>{msg.sender.username || msg.sender.name || 'Unknown'}</Text>
-                </TouchableOpacity>
+            <View key={msg._id || index} style={[styles.messageRow, isMe ? styles.rowReverse : styles.rowRow]}>
+              {showAvatar ? (
+                <Image
+                  source={{ uri: msg.sender.image || `https://ui-avatars.com/api/?name=${msg.sender.username}&background=random&color=fff` }}
+                  style={styles.avatar}
+                />
+              ) : (
+                <View style={{ width: 0 }} />
               )}
-              <Text style={isMe ? styles.sentMessageText : styles.messageText}>{msg.content}</Text>
-              <Text style={styles.timestamp}>
-                {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </Text>
+
+              <View style={[styles.messageBubble, isMe ? styles.myBubble : styles.theirBubble]}>
+                {!isMe && (
+                  <Text style={styles.senderName}>{msg.sender.username}</Text>
+                )}
+                <Text style={[styles.messageText, isMe ? styles.myMessageText : styles.theirMessageText]}>
+                  {msg.content}
+                </Text>
+                <Text style={[styles.timestamp, isMe ? styles.myTimestamp : styles.theirTimestamp]}>
+                  {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              </View>
             </View>
           );
         })}
@@ -141,9 +115,10 @@ const styles = StyleSheet.create({
   subHeader: {
     backgroundColor: '#fff',
     paddingHorizontal: 15,
-    paddingBottom: 10,
+    justifyContent: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
+    elevation: 2,
   },
   subHeaderText: {
     fontSize: 18,
@@ -152,29 +127,63 @@ const styles = StyleSheet.create({
   },
   chatContainer: {
     flex: 1,
-    backgroundColor: '#bdcfe7ff',
+    backgroundColor: '#EFEFF4',
   },
-  receivedMessage: {
-    backgroundColor: '#fff',
+  messageRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    marginBottom: 12,
+    width: '100%',
+  },
+  rowRow: { justifyContent: 'flex-start' },
+  rowReverse: { justifyContent: 'flex-end' },
+
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 8,
+    marginBottom: 2,
+    backgroundColor: '#ddd',
+  },
+
+  messageBubble: {
+    maxWidth: '75%',
     padding: 12,
-    borderRadius: 15,
-    borderTopLeftRadius: 2,
-    maxWidth: '80%',
-    alignSelf: 'flex-start',
-    marginBottom: 10,
+    borderRadius: 18,
     elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
   },
-  sentMessage: {
-    backgroundColor: '#2e78b7',
-    padding: 12,
-    borderRadius: 15,
-    borderTopRightRadius: 2,
-    maxWidth: '80%',
+  myBubble: {
+    backgroundColor: '#4A00E0',
+    borderBottomRightRadius: 4,
+  },
+  theirBubble: {
+    backgroundColor: '#fff',
+    borderBottomLeftRadius: 4,
+  },
+
+  senderName: {
+    fontSize: 11,
+    color: '#ff6b6b',
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  messageText: {
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  myMessageText: { color: '#fff' },
+  theirMessageText: { color: '#1a1a1a' },
+
+  timestamp: {
+    fontSize: 10,
+    marginTop: 4,
     alignSelf: 'flex-end',
-    marginBottom: 10,
   },
-  messageText: { color: '#333' },
-  sentMessageText: { color: '#fff' },
-  senderName: { fontSize: 12, color: '#2e78b7', marginBottom: 4, fontWeight: 'bold' },
-  timestamp: { fontSize: 10, color: '#ccc', marginTop: 4, textAlign: 'right' },
+  myTimestamp: { color: 'rgba(255,255,255,0.7)' },
+  theirTimestamp: { color: '#999' },
 });

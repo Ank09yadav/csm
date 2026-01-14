@@ -108,9 +108,7 @@ export default function PrivateChatPage() {
         socket.emit('joinPublicRoom', conversationId);
 
         const handleNewMessage = (msg: Message) => {
-            if (msg.sender._id === currentUser?._id) return; // We might handle our own optmistically
-            // Actually, server sends to room, so we receive our own too.
-            // Let's just append if ID not present
+            // Check based on content/ID to duplicate
             setMessages(prev => {
                 if (prev.some(m => m._id === msg._id)) return prev;
                 return [...prev, msg];
@@ -134,7 +132,7 @@ export default function PrivateChatPage() {
         return (
             <View style={[styles.container, { justifyContent: 'center' }]}>
                 <Stack.Screen options={{ headerShown: false }} />
-                <ActivityIndicator size="large" color="#2e78b7" />
+                <ActivityIndicator size="large" color="#4A00E0" />
             </View>
         );
     }
@@ -151,7 +149,10 @@ export default function PrivateChatPage() {
                             <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 10 }}>
                                 <Ionicons name="arrow-back" size={24} color="#333" />
                             </TouchableOpacity>
-                            <Image source={{ uri: targetUser.image || 'https://via.placeholder.com/40' }} style={styles.avatar} />
+                            <Image
+                                source={{ uri: targetUser.image || `https://ui-avatars.com/api/?name=${targetUser.username}&background=random&color=fff` }}
+                                style={styles.avatar}
+                            />
                             <View>
                                 <Text style={styles.headerName}>{targetUser.name || targetUser.username}</Text>
                                 <Text style={styles.headerStatus}>{targetUser.isOnline ? 'Online' : 'Offline'}</Text>
@@ -176,9 +177,11 @@ export default function PrivateChatPage() {
                     style={styles.chatArea}
                     contentContainerStyle={{ padding: 15, paddingBottom: 20 }}
                     onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+                    keyboardShouldPersistTaps="handled"
                 >
                     {messages.map((msg, index) => {
-                        const isMe = msg.sender._id === currentUser?._id;
+                        // Updated check for both user ID formats
+                        const isMe = msg.sender._id === (currentUser as any)?._id || msg.sender._id === (currentUser as any)?.userId;
                         return (
                             <View
                                 key={msg._id || index}
@@ -187,7 +190,7 @@ export default function PrivateChatPage() {
                                     isMe ? styles.myMessage : styles.theirMessage
                                 ]}
                             >
-                                <Text style={[styles.messageText, isMe ? { color: '#fff' } : { color: '#333' }]}>
+                                <Text style={[styles.messageText, isMe ? { color: '#fff' } : { color: '#1a1a1a' }]}>
                                     {msg.content}
                                 </Text>
                                 <Text style={[styles.timeText, isMe ? { color: 'rgba(255,255,255,0.7)' } : { color: '#999' }]}>
@@ -243,7 +246,7 @@ const styles = StyleSheet.create({
         height: 40,
         borderRadius: 20,
         marginRight: 10,
-        backgroundColor: '#ddd'
+        backgroundColor: '#E1E8ED',
     },
     headerName: {
         fontSize: 16,
@@ -258,25 +261,25 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     messageBubble: {
-        maxWidth: '80%',
+        maxWidth: '75%',
         padding: 12,
-        borderRadius: 16,
+        borderRadius: 18,
         marginBottom: 10,
+        elevation: 1,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 1,
     },
     myMessage: {
         alignSelf: 'flex-end',
-        backgroundColor: '#2e78b7',
-        borderBottomRightRadius: 2,
+        backgroundColor: '#4A00E0', // Professional Purple
+        borderBottomRightRadius: 4,
     },
     theirMessage: {
         alignSelf: 'flex-start',
         backgroundColor: '#fff',
-        borderBottomLeftRadius: 2,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 1,
+        borderBottomLeftRadius: 4,
     },
     messageText: {
         fontSize: 15,

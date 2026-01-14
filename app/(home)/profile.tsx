@@ -66,6 +66,7 @@ const Profile = () => {
             // Handle "User not found" (404) or "Unauthorized" (401)
             // This happens if the user was deleted/banned or environment switched (Local vs Prod)
             if (error.message?.includes('User not found') || error.message?.includes('Unauthorized')) {
+                console.log("Auto-logout triggered due to:", error.message);
                 Alert.alert(
                     "Session Expired",
                     "Your user account was not found. Please sign in again.",

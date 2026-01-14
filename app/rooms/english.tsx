@@ -73,7 +73,7 @@ export default function ChatPage() {
                 onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
             >
                 {messages.map((msg, index) => {
-                    const isMe = msg.sender._id === user?._id;
+                    const isMe = msg.sender._id === (user as any)?._id || msg.sender._id === (user as any)?.userId;
                     const showAvatar = !isMe;
 
                     return (
