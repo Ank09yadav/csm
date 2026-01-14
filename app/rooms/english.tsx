@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
-    StyleSheet, Text, View,
+    StyleSheet, Text, View, Image,
     KeyboardAvoidingView, ScrollView, Platform
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -36,9 +36,6 @@ export default function ChatPage() {
 
             socket.on('newPublicMessage', (msg: Message) => {
                 setMessages((prev) => [...prev, msg]);
-                setTimeout(() => {
-                    scrollViewRef.current?.scrollToEnd({ animated: true });
-                }, 100);
             });
 
             return () => {
@@ -47,18 +44,25 @@ export default function ChatPage() {
         }
     }, [socket, isConnected]);
 
+    // Auto-scroll on new messages
+    useEffect(() => {
+        setTimeout(() => {
+            scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+    }, [messages]);
+
     const handleSend = (msgContent: string) => {
-        // Optional: Any local logic if needed
+        // Optional: Optimistic update or wait for socket loop
     };
 
     return (
         <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.mainWrapper}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
         >
-            <View style={styles.subHeader}>
-                <Text style={styles.subHeaderText}>English Room {isConnected ? '(Live)' : '(Connecting...)'}</Text>
+            <View style={[styles.subHeader, { height: 50 + insets.top, paddingTop: insets.top }]}>
+                <Text style={styles.subHeaderText}>English Room {isConnected ? '🟢' : '🔴'}</Text>
             </View>
 
             <ScrollView
@@ -70,13 +74,33 @@ export default function ChatPage() {
             >
                 {messages.map((msg, index) => {
                     const isMe = msg.sender._id === user?._id;
+                    const showAvatar = !isMe;
+
                     return (
-                        <View key={msg._id || index} style={isMe ? styles.sentMessage : styles.receivedMessage}>
-                            {!isMe && <Text style={styles.senderName}>{msg.sender.username || msg.sender.name || 'Unknown'}</Text>}
-                            <Text style={isMe ? styles.sentMessageText : styles.messageText}>{msg.content}</Text>
-                            <Text style={styles.timestamp}>
-                                {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </Text>
+                        <View key={msg._id || index} style={[styles.messageRow, isMe ? styles.rowReverse : styles.rowRow]}>
+
+                            {/* Avatar for other users */}
+                            {showAvatar ? (
+                                <Image
+                                    source={{ uri: `https://ui-avatars.com/api/?name=${msg.sender.username}&background=random&color=fff` }}
+                                    style={styles.avatar}
+                                />
+                            ) : (
+                                // Spacer for alignment if needed, or nothing for "me"
+                                <View style={{ width: 0 }} />
+                            )}
+
+                            <View style={[styles.messageBubble, isMe ? styles.myBubble : styles.theirBubble]}>
+                                {!isMe && (
+                                    <Text style={styles.senderName}>{msg.sender.username}</Text>
+                                )}
+                                <Text style={[styles.messageText, isMe ? styles.myMessageText : styles.theirMessageText]}>
+                                    {msg.content}
+                                </Text>
+                                <Text style={[styles.timestamp, isMe ? styles.myTimestamp : styles.theirTimestamp]}>
+                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </Text>
+                            </View>
                         </View>
                     );
                 })}
@@ -95,9 +119,10 @@ const styles = StyleSheet.create({
     subHeader: {
         backgroundColor: '#fff',
         paddingHorizontal: 15,
-        paddingBottom: 10,
+        justifyContent: 'center',
         borderBottomWidth: 1,
         borderBottomColor: '#eee',
+        elevation: 2,
     },
     subHeaderText: {
         fontSize: 18,
@@ -106,29 +131,63 @@ const styles = StyleSheet.create({
     },
     chatContainer: {
         flex: 1,
-        backgroundColor: '#bdcfe7ff',
+        backgroundColor: '#EFEFF4',
     },
-    receivedMessage: {
-        backgroundColor: '#fff',
+    messageRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        marginBottom: 12,
+        width: '100%',
+    },
+    rowRow: { justifyContent: 'flex-start' },
+    rowReverse: { justifyContent: 'flex-end' },
+
+    avatar: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        marginRight: 8,
+        marginBottom: 2,
+        backgroundColor: '#ddd',
+    },
+
+    messageBubble: {
+        maxWidth: '75%',
         padding: 12,
-        borderRadius: 15,
-        borderTopLeftRadius: 2,
-        maxWidth: '80%',
-        alignSelf: 'flex-start',
-        marginBottom: 10,
+        borderRadius: 18,
         elevation: 1,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 1,
     },
-    sentMessage: {
-        backgroundColor: '#2e78b7',
-        padding: 12,
-        borderRadius: 15,
-        borderTopRightRadius: 2,
-        maxWidth: '80%',
+    myBubble: {
+        backgroundColor: '#4A00E0',
+        borderBottomRightRadius: 4,
+    },
+    theirBubble: {
+        backgroundColor: '#fff',
+        borderBottomLeftRadius: 4,
+    },
+
+    senderName: {
+        fontSize: 11,
+        color: '#ff6b6b',
+        fontWeight: 'bold',
+        marginBottom: 2,
+    },
+    messageText: {
+        fontSize: 15,
+        lineHeight: 20,
+    },
+    myMessageText: { color: '#fff' },
+    theirMessageText: { color: '#1a1a1a' },
+
+    timestamp: {
+        fontSize: 10,
+        marginTop: 4,
         alignSelf: 'flex-end',
-        marginBottom: 10,
     },
-    messageText: { color: '#333' },
-    sentMessageText: { color: '#fff' },
-    senderName: { fontSize: 12, color: '#2e78b7', marginBottom: 4, fontWeight: 'bold' },
-    timestamp: { fontSize: 10, color: '#ccc', marginTop: 4, textAlign: 'right' },
+    myTimestamp: { color: 'rgba(255,255,255,0.7)' },
+    theirTimestamp: { color: '#999' },
 });

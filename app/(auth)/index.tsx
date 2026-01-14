@@ -1,6 +1,5 @@
-import React from 'react';
-import AuthCard from './card';
+import { Redirect } from 'expo-router';
 
 export default function AuthIndex() {
-    return <AuthCard />;
+    return <Redirect href="/(auth)/login" />;
 }

@@ -9,6 +9,7 @@ import {
     ActivityIndicator,
     Alert,
     KeyboardAvoidingView,
+    ToastAndroid,
     Platform,
     ScrollView
 } from 'react-native';
@@ -54,11 +55,11 @@ export default function AuthCard() {
 
     const handleLogin = async () => {
         if (!loginIdentifier) {
-            Alert.alert('Error', 'Please enter username or email');
+            ToastAndroid.show('Please enter username or email', ToastAndroid.SHORT);
             return;
         }
         if (!password) {
-            Alert.alert('Error', 'Please enter password');
+            ToastAndroid.show('Please enter password', ToastAndroid.SHORT);
             return;
         }
 
@@ -77,17 +78,25 @@ export default function AuthCard() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
-            const data = await response.json();
+
+            const responseText = await response.text();
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (e) {
+                console.error("Failed to parse Login JSON response:", responseText);
+                throw new Error(`Server returned invalid JSON. Status: ${response.status}`);
+            }
 
             if (response.ok) {
                 // Alert.alert('Success', 'Logged in successfully');
                 await signIn(data.token, data.user);
             } else {
-                Alert.alert('Login Failed', data.message || 'Something went wrong');
+                ToastAndroid.show(data.message || 'Login Failed', ToastAndroid.SHORT);
             }
-        } catch (error) {
-            Alert.alert('Error', 'Network error or server unreachable');
-            console.error(error);
+        } catch (error: any) {
+            console.error("Login Error:", error);
+            ToastAndroid.show(error.message || 'Network error or server unreachable', ToastAndroid.SHORT);
         } finally {
             setLoading(false);
         }
@@ -95,7 +104,7 @@ export default function AuthCard() {
 
     const handleSignup = async () => {
         if (!email || !password || !name) {
-            Alert.alert('Error', 'All fields are required');
+            ToastAndroid.show('All fields are required', ToastAndroid.SHORT);
             return;
         }
         setLoading(true);
@@ -115,17 +124,26 @@ export default function AuthCard() {
                     name
                 }),
             });
-            const data = await response.json();
+
+            const responseText = await response.text();
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (e) {
+                console.error("Failed to parse Signup JSON response:", responseText);
+                throw new Error(`Server returned invalid JSON. Status: ${response.status}`);
+            }
 
             if (response.ok) {
                 Alert.alert('Success', 'Account created! Please login.');
                 setMode('LOGIN');
                 resetForm();
             } else {
-                Alert.alert('Signup Failed', data.message || 'Something went wrong');
+                ToastAndroid.show(data.message || 'Signup Failed', ToastAndroid.SHORT);
             }
-        } catch (error) {
-            Alert.alert('Error', 'Network error');
+        } catch (error: any) {
+            console.error("Signup Error:", error);
+            ToastAndroid.show(error.message || 'Network error', ToastAndroid.SHORT);
         } finally {
             setLoading(false);
         }

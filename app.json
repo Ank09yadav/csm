@@ -2,9 +2,9 @@
   "expo": {
     "name": "csm",
     "slug": "csm",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/csmLogo.png",
     "scheme": "csm",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,

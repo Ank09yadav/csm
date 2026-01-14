@@ -1,5 +1,14 @@
-import { Stack } from 'expo-router'
+import { Stack } from 'expo-router';
 
-export default function AuthRoutesLayout() {
-  return <Stack />
+export default function AuthLayout() {
+  return (
+    <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="login" />
+      <Stack.Screen name="register" />
+      <Stack.Screen name="forgot-password" />
+      <Stack.Screen name="verify-otp" />
+      <Stack.Screen name="reset-password" />
+    </Stack>
+  );
 }
