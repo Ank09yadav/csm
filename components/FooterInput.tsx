@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet, Platform, KeyboardAvoidingView, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSocket } from '../context/SocketContext';
@@ -9,9 +9,11 @@ interface FooterInputProps {
     onSend?: (message: string) => void;
     chatType?: 'public' | 'private';
     chatId?: string;
+    replyingTo?: any | null; // Allow generic for now to avoid circular dependency
+    onCancelReply?: () => void;
 }
 
-export default function FooterInput({ onSend, chatType, chatId }: FooterInputProps) {
+export default function FooterInput({ onSend, chatType, chatId, replyingTo, onCancelReply }: FooterInputProps) {
     const [message, setMessage] = useState('');
     const insets = useSafeAreaInsets();
     const { socket, isConnected } = useSocket();
@@ -20,17 +22,21 @@ export default function FooterInput({ onSend, chatType, chatId }: FooterInputPro
         if (message.trim().length > 0) {
 
             if (chatType && chatId && socket && isConnected) {
+                const payload = {
+                    content: message,
+                    type: 'TEXT',
+                    replyTo: replyingTo ? replyingTo._id : undefined
+                };
+
                 if (chatType === 'public') {
                     socket.emit('sendPublicMessage', {
                         room: chatId,
-                        content: message,
-                        type: 'TEXT'
+                        ...payload
                     });
                 } else if (chatType === 'private') {
                     socket.emit('sendPrivateMessage', {
                         conversationId: chatId,
-                        content: message,
-                        type: 'TEXT'
+                        ...payload
                     });
                 }
             }
@@ -43,39 +49,87 @@ export default function FooterInput({ onSend, chatType, chatId }: FooterInputPro
     };
 
     return (
-        <View style={[styles.inputContainer, { paddingBottom: insets.bottom > 0 ? insets.bottom : 10 }]}>
+        <View>
+            {/* Reply Preview Banner */}
+            {replyingTo && (
+                <View style={styles.replyPreviewBar}>
+                    <View style={styles.replyPreviewLine} />
+                    <View style={{ flex: 1 }}>
+                        <Text style={styles.replyPreviewTitle}>
+                            Replying into {(replyingTo.sender as any).username || "User"}
+                        </Text>
+                        <Text numberOfLines={1} style={styles.replyPreviewText}>
+                            {replyingTo.content}
+                        </Text>
+                    </View>
+                    <TouchableOpacity onPress={onCancelReply} style={{ padding: 5 }}>
+                        <Ionicons name="close" size={20} color={Colors.textSecondary} />
+                    </TouchableOpacity>
+                </View>
+            )}
 
-            {/* Attach Button (Visual Only for now) */}
-            <TouchableOpacity style={styles.attachButton}>
-                <Ionicons name="add" size={24} color={Colors.text} />
-            </TouchableOpacity>
+            <View style={[styles.inputContainer, { paddingBottom: insets.bottom > 0 ? insets.bottom : 10 }]}>
 
-            {/* Text Input Area */}
-            <View style={styles.inputFieldContainer}>
-                <TextInput
-                    style={styles.textInput}
-                    placeholder='Message...'
-                    value={message}
-                    onChangeText={setMessage}
-                    multiline
-                    placeholderTextColor={Colors.textSecondary}
-                    maxLength={500}
-                />
+                {/* Attach Button (Visual Only for now) */}
+                <TouchableOpacity style={styles.attachButton}>
+                    <Ionicons name="add" size={24} color={Colors.text} />
+                </TouchableOpacity>
+
+                {/* Text Input Area */}
+                <View style={styles.inputFieldContainer}>
+                    <TextInput
+                        style={styles.textInput}
+                        placeholder='Message...'
+                        value={message}
+                        onChangeText={setMessage}
+                        multiline
+                        placeholderTextColor={Colors.textSecondary}
+                        maxLength={500}
+                    />
+                </View>
+
+                {/* Send Button */}
+                <TouchableOpacity
+                    style={[styles.sendButton, !message.trim() && styles.sendButtonDisabled]}
+                    onPress={handleSend}
+                    disabled={!message.trim()}
+                >
+                    <Ionicons name='arrow-up' size={20} color="white" />
+                </TouchableOpacity>
             </View>
-
-            {/* Send Button */}
-            <TouchableOpacity
-                style={[styles.sendButton, !message.trim() && styles.sendButtonDisabled]}
-                onPress={handleSend}
-                disabled={!message.trim()}
-            >
-                <Ionicons name='arrow-up' size={20} color="white" />
-            </TouchableOpacity>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
+    // Reply Preview Styles
+    replyPreviewBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        backgroundColor: Colors.surface,
+        borderTopWidth: 1,
+        borderTopColor: Colors.border,
+    },
+    replyPreviewLine: {
+        width: 4,
+        height: '100%',
+        backgroundColor: Colors.primary,
+        marginRight: 10,
+        borderRadius: 2,
+    },
+    replyPreviewTitle: {
+        color: Colors.primary,
+        fontWeight: 'bold',
+        fontSize: 12,
+        marginBottom: 2,
+    },
+    replyPreviewText: {
+        color: Colors.textSecondary,
+        fontSize: 12,
+    },
+
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'flex-end',

@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
     StyleSheet, Text, View, Image,
-    KeyboardAvoidingView, ScrollView, Platform, ActivityIndicator, Alert
+    KeyboardAvoidingView, ScrollView, Platform, ActivityIndicator, Alert, TouchableOpacity
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import FooterInput from './FooterInput';
 import { useSocket } from '../context/SocketContext';
@@ -22,6 +24,7 @@ interface Message {
         name?: string;
         image?: string;
     };
+    replyTo?: Message; // For now assuming nested population or just ID
     createdAt: string;
 }
 
@@ -31,6 +34,32 @@ interface ChatRoomProps {
     isHindiRoom?: boolean;
     includeSafeAreaTop?: boolean;
 }
+
+// Swipeable Message Component
+const SwipeableMessage = ({ children, onSwipe, isMe }: { children: React.ReactNode, onSwipe: () => void, isMe: boolean }) => {
+    const renderRightActions = (_: any, dragX: any) => {
+        // Animation logic could go here
+        return (
+            <View style={{ width: 1, height: '100%' }} />
+        );
+    };
+
+    return (
+        <Swipeable
+            renderRightActions={renderRightActions}
+            friction={2}
+            overshootRight={false}
+            onSwipeableOpen={(direction) => {
+                if (direction === 'right') {
+                    onSwipe();
+                }
+            }}
+        >
+            {children}
+        </Swipeable>
+    );
+};
+
 
 export default function ChatRoom({
     roomName,
@@ -45,6 +74,9 @@ export default function ChatRoom({
     const scrollViewRef = useRef<ScrollView>(null);
     const [loading, setLoading] = useState(true);
 
+    // Reply State
+    const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+
     // Initial Fetch
     useEffect(() => {
         const fetchHistory = async () => {
@@ -58,7 +90,6 @@ export default function ChatRoom({
                 Logger.error("Failed to fetch messages:", error);
                 if (error.message === 'Unauthorized' || error.message?.includes('Unauthorized')) {
                     Alert.alert("Session Expired", "Please login again.");
-                    // signOut(); // Uncomment in production
                 }
             } finally {
                 setLoading(false);
@@ -115,102 +146,117 @@ export default function ChatRoom({
                 name: (user as any).name,
                 image: (user as any).image
             },
+            replyTo: replyingTo || undefined,
             createdAt: new Date().toISOString()
         };
 
         setMessages(prev => [...prev, optimisticMsg]);
+        setReplyingTo(null); // Clear reply after sending
     };
 
     return (
-        <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.mainWrapper}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-        >
-            <View style={[
-                styles.subHeader,
-                {
-                    height: 50 + (includeSafeAreaTop ? insets.top : 0),
-                    paddingTop: includeSafeAreaTop ? insets.top : 0
-                }
-            ]}>
-                <Text style={styles.subHeaderText}>
-                    {roomDisplayName} {isConnected ? <Text style={{ fontSize: 12 }}>🟢</Text> : <Text style={{ fontSize: 12 }}>🔴</Text>}
-                </Text>
-            </View>
-
-            {loading ? (
-                <View style={[styles.chatContainer, { justifyContent: 'center', alignItems: 'center' }]}>
-                    <ActivityIndicator size="large" color={Colors.primary} />
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={styles.mainWrapper}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+            >
+                <View style={[
+                    styles.subHeader,
+                    {
+                        height: 50 + (includeSafeAreaTop ? insets.top : 0),
+                        paddingTop: includeSafeAreaTop ? insets.top : 0
+                    }
+                ]}>
+                    <Text style={styles.subHeaderText}>
+                        {roomDisplayName} {isConnected ? <Text style={{ fontSize: 12 }}>🟢</Text> : <Text style={{ fontSize: 12 }}>🔴</Text>}
+                    </Text>
                 </View>
-            ) : (
-                <ScrollView
-                    ref={scrollViewRef}
-                    style={styles.chatContainer}
-                    contentContainerStyle={{ padding: 15, paddingBottom: 20 }}
-                    keyboardShouldPersistTaps="handled"
-                    onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
-                >
-                    {messages.length === 0 && (
-                        <View style={{ alignItems: 'center', marginTop: 50 }}>
-                            <Text style={{ color: Colors.textSecondary, fontSize: 16 }}>No messages yet.</Text>
-                            <Text style={{ color: Colors.textMuted, fontSize: 14 }}>Be the first to say hello!</Text>
-                        </View>
-                    )}
 
-                    {messages.map((msg, index) => {
-                        const currentUserId = user?._id;
-                        const senderId = typeof msg.sender === 'object' ? msg.sender._id : msg.sender;
-                        const isMe = currentUserId && senderId && currentUserId.toString() === senderId.toString();
-
-                        const avatarUri = (msg.sender as any).image
-                            ? (msg.sender as any).image
-                            : `https://ui-avatars.com/api/?name=${(msg.sender as any).name || (msg.sender as any).username}&background=random&color=fff`;
-
-                        const senderName = (msg.sender as any).name || (msg.sender as any).username;
-
-                        return (
-                            <View key={msg._id || index} style={[styles.messageRow, isMe ? styles.rowReverse : styles.rowRow]}>
-
-                                {/* Avatar - Always Show */}
-                                <Image
-                                    source={{ uri: avatarUri }}
-                                    style={styles.avatar}
-                                />
-
-                                {isMe ? (
-                                    <LinearGradient
-                                        colors={[Colors.primary, Colors.primaryDark]}
-                                        style={[styles.messageBubble, styles.myBubble]}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 1 }}
-                                    >
-                                        <Text style={[styles.messageText, styles.myMessageText]}>
-                                            {msg.content}
-                                        </Text>
-                                        <Text style={[styles.timestamp, styles.myTimestamp]}>
-                                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </Text>
-                                    </LinearGradient>
-                                ) : (
-                                    <View style={[styles.messageBubble, styles.theirBubble]}>
-                                        <Text style={styles.senderName}>{senderName}</Text>
-                                        <Text style={[styles.messageText, styles.theirMessageText]}>
-                                            {msg.content}
-                                        </Text>
-                                        <Text style={[styles.timestamp, styles.theirTimestamp]}>
-                                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </Text>
-                                    </View>
-                                )}
+                {loading ? (
+                    <View style={[styles.chatContainer, { justifyContent: 'center', alignItems: 'center' }]}>
+                        <ActivityIndicator size="large" color={Colors.primary} />
+                    </View>
+                ) : (
+                    <ScrollView
+                        ref={scrollViewRef}
+                        style={styles.chatContainer}
+                        contentContainerStyle={{ padding: 15, paddingBottom: 20 }}
+                        keyboardShouldPersistTaps="handled"
+                        onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+                    >
+                        {messages.length === 0 && (
+                            <View style={{ alignItems: 'center', marginTop: 50 }}>
+                                <Text style={{ color: Colors.textSecondary, fontSize: 16 }}>No messages yet.</Text>
+                                <Text style={{ color: Colors.textMuted, fontSize: 14 }}>Be the first to say hello!</Text>
                             </View>
-                        );
-                    })}
-                </ScrollView>
-            )}
+                        )}
 
-            <FooterInput onSend={handleSend} chatType="public" chatId={roomName} />
-        </KeyboardAvoidingView>
+                        {messages.map((msg, index) => {
+                            const currentUserId = user?._id;
+                            const senderId = typeof msg.sender === 'object' ? msg.sender._id : msg.sender;
+                            const isMe = currentUserId && senderId && currentUserId.toString() === senderId.toString();
+
+                            const avatarUri = (msg.sender as any).image
+                                ? (msg.sender as any).image
+                                : `https://ui-avatars.com/api/?name=${(msg.sender as any).name || (msg.sender as any).username}&background=random&color=fff`;
+
+                            const senderName = (msg.sender as any).name || (msg.sender as any).username;
+
+                            return (
+                                <SwipeableMessage
+                                    key={msg._id || index}
+                                    isMe={isMe || false}
+                                    onSwipe={() => setReplyingTo(msg)}
+                                >
+                                    <View style={styles.messageRow}> {/* Always Left Aligned Layout */}
+
+                                        {/* Avatar - Always Show on Left */}
+                                        <Image
+                                            source={{ uri: avatarUri }}
+                                            style={styles.avatar}
+                                        />
+
+                                        <View style={[
+                                            styles.messageBubble,
+                                            isMe ? styles.myBubble : styles.theirBubble
+                                        ]}>
+                                            {/* Name - Always Show */}
+                                            <Text style={styles.senderName}>{senderName}</Text>
+
+                                            {/* Reply Context Preview */}
+                                            {msg.replyTo && (
+                                                <View style={styles.replyContext}>
+                                                    <View style={styles.replyBar} />
+                                                    <Text numberOfLines={1} style={styles.replyText}>
+                                                        {(msg.replyTo as any).content || "Replying to a message"}
+                                                    </Text>
+                                                </View>
+                                            )}
+
+                                            <Text style={[styles.messageText, isMe ? styles.myMessageText : styles.theirMessageText]}>
+                                                {msg.content}
+                                            </Text>
+                                            <Text style={[styles.timestamp, isMe ? styles.myTimestamp : styles.theirTimestamp]}>
+                                                {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                </SwipeableMessage>
+                            );
+                        })}
+                    </ScrollView>
+                )}
+
+                <FooterInput
+                    onSend={handleSend}
+                    chatType="public"
+                    chatId={roomName}
+                    replyingTo={replyingTo}
+                    onCancelReply={() => setReplyingTo(null)}
+                />
+            </KeyboardAvoidingView>
+        </GestureHandlerRootView>
     );
 }
 
@@ -238,28 +284,28 @@ const styles = StyleSheet.create({
     },
     messageRow: {
         flexDirection: 'row',
-        alignItems: 'flex-end',
+        alignItems: 'flex-start', // Top align for avatar vs bubble
         marginBottom: 16,
         width: '100%',
+        paddingRight: 40, // Avoid full width to distinguish messages
     },
-    rowRow: { justifyContent: 'flex-start' },
-    rowReverse: { justifyContent: 'flex-end' },
 
     avatar: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        marginHorizontal: 8,
-        marginBottom: 2,
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        marginRight: 10,
         backgroundColor: Colors.surfaceHighlight,
         borderWidth: 1,
         borderColor: Colors.border,
     },
 
     messageBubble: {
-        maxWidth: '75%',
+        flex: 1,
         padding: 12,
-        borderRadius: 20,
+        borderRadius: 16,
+        // Make bubbles slightly less rounded to look more like "blocks" if desired
+        borderTopLeftRadius: 4,
         elevation: 1,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
@@ -267,13 +313,14 @@ const styles = StyleSheet.create({
         shadowRadius: 1,
     },
     myBubble: {
-        borderBottomRightRadius: 4,
-        marginRight: 4, // Space from edge/avatar if needed
+        backgroundColor: '#2A2A35', // Distinct dark for me
+        borderColor: Colors.primary,
+        borderWidth: 1,
     },
     theirBubble: {
         backgroundColor: Colors.surface,
-        borderBottomLeftRadius: 4,
-        marginLeft: 4,
+        borderColor: Colors.border,
+        borderWidth: 1,
     },
 
     senderName: {
@@ -286,7 +333,7 @@ const styles = StyleSheet.create({
         fontSize: 15,
         lineHeight: 22,
     },
-    myMessageText: { color: '#fff' },
+    myMessageText: { color: Colors.text },
     theirMessageText: { color: Colors.text },
 
     timestamp: {
@@ -294,6 +341,26 @@ const styles = StyleSheet.create({
         marginTop: 6,
         alignSelf: 'flex-end',
     },
-    myTimestamp: { color: 'rgba(255,255,255,0.7)' },
+    myTimestamp: { color: Colors.textMuted },
     theirTimestamp: { color: Colors.textMuted },
+
+    // Reply Styles
+    replyContext: {
+        marginBottom: 6,
+        padding: 6,
+        backgroundColor: 'rgba(0,0,0,0.2)',
+        borderRadius: 4,
+        flexDirection: 'row',
+    },
+    replyBar: {
+        width: 3,
+        backgroundColor: Colors.primary,
+        marginRight: 6,
+        borderRadius: 2,
+    },
+    replyText: {
+        color: Colors.textSecondary,
+        fontSize: 12,
+        fontStyle: 'italic',
+    },
 });
