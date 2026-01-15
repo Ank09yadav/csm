@@ -41,13 +41,16 @@ function InitialLayout() {
 }
 
 import { SocketProvider } from '../context/SocketContext';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <SocketProvider>
-        <InitialLayout />
-      </SocketProvider>
-    </AuthProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider>
+        <SocketProvider>
+          <InitialLayout />
+        </SocketProvider>
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 }

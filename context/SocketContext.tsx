@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { Alert } from 'react-native';
 import { useAuth } from './AuthContext';
 import { SOCKET_URL } from '../constants/api';
 import { Logger } from '../services/Logger';
@@ -47,6 +48,32 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
 
             socketInstance.on('connect_error', (err) => {
                 Logger.error('Socket connection error:', err);
+            });
+
+            // Global Notification Listener
+            socketInstance.on('notification', (data: any) => {
+                Logger.info('Notification received:', data);
+                // In a future update, this should use a proper In-App Notification UI (Toast/Snackbar)
+                // For now, we use Alert as a robust fallback.
+                if (data.type === 'friendRequest') {
+                    Alert.alert(
+                        'New Friend Request',
+                        data.message,
+                        [
+                            { text: 'Ignore', style: 'cancel' },
+                            {
+                                text: 'Accept',
+                                onPress: () => {
+                                    socketInstance.emit('acceptFriendRequest', data.from._id);
+                                }
+                            }
+                        ]
+                    );
+                } else if (data.type === 'friendRequestAccepted') {
+                    Alert.alert('Friend Request Accepted', data.message);
+                } else {
+                    Alert.alert('Notification', data.message);
+                }
             });
 
             setSocket(socketInstance);

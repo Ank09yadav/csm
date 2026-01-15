@@ -8,6 +8,9 @@ import { useAuth } from '../../context/AuthContext';
 
 type ListType = 'friends' | 'requests' | 'sent';
 
+import { useSocket } from '../../context/SocketContext';
+import { Alert } from 'react-native';
+
 const FriendListPage = () => {
   const [activeTab, setActiveTab] = useState<ListType>('friends');
   const [friends, setFriends] = useState<User[]>([]);
@@ -18,6 +21,7 @@ const FriendListPage = () => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { token } = useAuth();
+  const { socket, isConnected } = useSocket();
 
   const API_URL = 'https://csmserver.onrender.com/api/user/friends';
 
@@ -93,6 +97,17 @@ const FriendListPage = () => {
     }
   };
 
+  const handleAccept = (targetId: string) => {
+    if (socket && isConnected) {
+      socket.emit('acceptFriendRequest', targetId);
+      // Optimistically remove from requests
+      setRequests(prev => prev.filter(u => u.id !== targetId));
+      Alert.alert("Success", "Friend request accepted!");
+    } else {
+      Alert.alert("Error", "You are offline. Reconnecting...");
+    }
+  };
+
   const renderFriendItem = ({ item }: { item: User }) => (
     <TouchableOpacity
       style={styles.friendItem}
@@ -113,8 +128,12 @@ const FriendListPage = () => {
       )}
       {activeTab === 'requests' && (
         <View style={{ flexDirection: 'row' }}>
-          <Ionicons name="checkmark-circle" size={28} color="#4CAF50" style={{ marginRight: 10 }} />
-          <Ionicons name="close-circle" size={28} color="#ff4444" />
+          <TouchableOpacity onPress={() => item.id && handleAccept(item.id)}>
+            <Ionicons name="checkmark-circle" size={28} color="#4CAF50" style={{ marginRight: 10 }} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => Alert.alert("TODO", "Reject not implemented yet")}>
+            <Ionicons name="close-circle" size={28} color="#ff4444" />
+          </TouchableOpacity>
         </View>
       )}
       {activeTab === 'sent' && (
