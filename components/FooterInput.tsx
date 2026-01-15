@@ -3,6 +3,7 @@ import { View, TextInput, TouchableOpacity, StyleSheet, Platform, KeyboardAvoidi
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSocket } from '../context/SocketContext';
+import { Colors } from '../constants/Colors';
 
 interface FooterInputProps {
     onSend?: (message: string) => void;
@@ -46,7 +47,7 @@ export default function FooterInput({ onSend, chatType, chatId }: FooterInputPro
 
             {/* Attach Button (Visual Only for now) */}
             <TouchableOpacity style={styles.attachButton}>
-                <Ionicons name="add" size={24} color="#4A00E0" />
+                <Ionicons name="add" size={24} color={Colors.text} />
             </TouchableOpacity>
 
             {/* Text Input Area */}
@@ -57,7 +58,7 @@ export default function FooterInput({ onSend, chatType, chatId }: FooterInputPro
                     value={message}
                     onChangeText={setMessage}
                     multiline
-                    placeholderTextColor="#999"
+                    placeholderTextColor={Colors.textSecondary}
                     maxLength={500}
                 />
             </View>
@@ -78,17 +79,17 @@ const styles = StyleSheet.create({
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'flex-end',
-        backgroundColor: '#fff',
+        backgroundColor: Colors.surface, // Dark surface
         paddingTop: 12,
         paddingHorizontal: 12,
         borderTopWidth: 1,
-        borderTopColor: '#f0f0f0',
+        borderTopColor: Colors.border,
     },
     attachButton: {
         width: 36,
         height: 36,
         borderRadius: 18,
-        backgroundColor: '#f0f2f5',
+        backgroundColor: Colors.surfaceHighlight, // Slightly lighter
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 6,
@@ -96,10 +97,10 @@ const styles = StyleSheet.create({
     },
     inputFieldContainer: {
         flex: 1,
-        backgroundColor: '#f8f9fa',
+        backgroundColor: Colors.background, // Deep dark for input
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: '#eee',
+        borderColor: Colors.border,
         paddingHorizontal: 15,
         paddingTop: 8,
         paddingBottom: 8,
@@ -109,26 +110,26 @@ const styles = StyleSheet.create({
     },
     textInput: {
         fontSize: 16,
-        color: '#1a1a1a',
+        color: Colors.text,
         padding: 0,
     },
     sendButton: {
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: '#4A00E0',
+        backgroundColor: Colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
         marginLeft: 8,
         marginBottom: 4,
-        shadowColor: '#4A00E0',
+        shadowColor: Colors.primary,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.3,
         shadowRadius: 4,
         elevation: 3,
     },
     sendButtonDisabled: {
-        backgroundColor: '#ccc',
+        backgroundColor: Colors.surfaceHighlight,
         shadowOpacity: 0,
         elevation: 0,
     },

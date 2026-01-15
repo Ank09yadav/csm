@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from './AuthContext';
-
-const SOCKET_URL = 'https://csmserver.onrender.com';
+import { SOCKET_URL } from '../constants/api';
+import { Logger } from '../services/Logger';
 
 interface SocketContextType {
     socket: Socket | null;
@@ -22,41 +22,48 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     const [isConnected, setIsConnected] = useState(false);
 
     useEffect(() => {
-        if (user && user._id) {
-            console.log("Initializing socket for user:", user._id);
+        // Only initialize if we have a user AND a token.
+        // Professional apps require secure connections.
+        if (user && user._id && token) {
+            Logger.info("Initializing socket for user:", user._id);
+
             const socketInstance = io(SOCKET_URL, {
                 query: { userId: user._id },
+                auth: { token }, // securely pass token
                 transports: ['websocket'],
+                reconnection: true,
+                reconnectionAttempts: 5,
             });
 
             socketInstance.on('connect', () => {
-                console.log('Socket connected:', socketInstance.id);
+                Logger.info('Socket connected:', socketInstance.id);
                 setIsConnected(true);
             });
 
             socketInstance.on('disconnect', () => {
-                console.log('Socket disconnected');
+                Logger.warn('Socket disconnected');
                 setIsConnected(false);
             });
 
             socketInstance.on('connect_error', (err) => {
-                console.log('Socket connection error:', err);
+                Logger.error('Socket connection error:', err);
             });
 
             setSocket(socketInstance);
 
             return () => {
+                Logger.debug("Cleaning up socket connection");
                 socketInstance.disconnect();
             };
         } else {
-            console.log("No user loaded, skipping socket init");
             if (socket) {
+                Logger.debug("User logged out, closing socket");
                 socket.disconnect();
                 setSocket(null);
                 setIsConnected(false);
             }
         }
-    }, [user?._id]); // Only re-run if user ID changes
+    }, [user?._id, token]); // Re-run if user or token changes
 
     return (
         <SocketContext.Provider value={{ socket, isConnected }}>
