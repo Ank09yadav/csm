@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, Image, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { Colors } from '../constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import { useSocket } from '../context/SocketContext';
 import { Logger } from '../services/Logger';
+import { userService } from '../services/userService';
+import { useRouter } from 'expo-router';
 
 interface UserProfileModalProps {
     visible: boolean;
@@ -14,17 +16,43 @@ interface UserProfileModalProps {
         name?: string;
         image?: string;
         about?: string;
+        college?: string;
     } | null;
 }
-
-import { useRouter } from 'expo-router';
 
 export default function UserProfileModal({ visible, onClose, user }: UserProfileModalProps) {
     const { socket, isConnected } = useSocket();
     const router = useRouter();
     const [requestSent, setRequestSent] = useState(false);
+    const [fullUser, setFullUser] = useState<any>(null);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (visible && user?._id) {
+            fetchUserDetails();
+            setRequestSent(false);
+        } else {
+            setFullUser(null);
+        }
+    }, [visible, user]);
+
+    const fetchUserDetails = async () => {
+        if (!user?._id) return;
+        setLoading(true);
+        try {
+            const data = await userService.getUserById(user._id);
+            setFullUser(data);
+        } catch (error) {
+            Logger.error("Failed to fetch user details", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     if (!user) return null;
+
+    // Merge passed user data with fetched data (fetched takes precedence)
+    const displayUser = { ...user, ...fullUser };
 
     const handleAddFriend = () => {
         if (socket && isConnected) {
@@ -34,9 +62,9 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
         }
     };
 
-    const avatarUri = user.image
-        ? user.image
-        : `https://ui-avatars.com/api/?name=${user.name || user.username}&background=random&color=fff`;
+    const avatarUri = displayUser.image
+        ? displayUser.image
+        : `https://ui-avatars.com/api/?name=${displayUser.name || displayUser.username}&background=random&color=fff`;
 
     return (
         <Modal
@@ -48,7 +76,7 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
             <View style={styles.modalOverlay}>
                 <View style={styles.modalContent}>
 
-                    {/* Header Image Background (Optional, using solid color for now) */}
+                    {/* Header Image Background */}
                     <View style={styles.headerBackground}>
                         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
                             <Ionicons name="close" size={24} color="#fff" />
@@ -61,42 +89,55 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                     </View>
 
                     {/* Content */}
-                    <View style={styles.infoContainer}>
-                        <Text style={styles.name}>{user.name || user.username}</Text>
-                        <Text style={styles.username}>@{user.username}</Text>
-
-                        {user.about && (
-                            <View style={styles.aboutContainer}>
-                                <Text style={styles.aboutTitle}>About</Text>
-                                <Text style={styles.aboutText}>{user.about}</Text>
-                            </View>
-                        )}
-
-                        {/* Actions */}
-                        <View style={styles.actionContainer}>
-                            <TouchableOpacity
-                                style={[styles.actionButton, requestSent && styles.disabledButton]}
-                                onPress={handleAddFriend}
-                                disabled={requestSent}
-                            >
-                                <Ionicons name={requestSent ? "checkmark" : "person-add"} size={20} color="#fff" />
-                                <Text style={styles.actionButtonText}>
-                                    {requestSent ? "Request Sent" : "Add Friend"}
-                                </Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={[styles.actionButton, styles.secondaryButton]}
-                                onPress={() => {
-                                    onClose();
-                                    router.push(`/(privateChat)/${user._id}`);
-                                }}
-                            >
-                                <Ionicons name="chatbubble-ellipses-outline" size={20} color={Colors.text} />
-                                <Text style={[styles.actionButtonText, { color: Colors.text }]}>Message</Text>
-                            </TouchableOpacity>
+                    {loading ? (
+                        <View style={styles.loadingContainer}>
+                            <ActivityIndicator size="large" color={Colors.primary} />
                         </View>
-                    </View>
+                    ) : (
+                        <ScrollView contentContainerStyle={styles.infoContainer}>
+                            <Text style={styles.name}>{displayUser.name || displayUser.username}</Text>
+                            <Text style={styles.username}>@{displayUser.username}</Text>
+
+                            {displayUser.college && (
+                                <View style={styles.infoItem}>
+                                    <Ionicons name="school-outline" size={18} color={Colors.textSecondary} style={{ marginRight: 8 }} />
+                                    <Text style={styles.infoText}>{displayUser.college}</Text>
+                                </View>
+                            )}
+
+                            {displayUser.about && (
+                                <View style={styles.aboutContainer}>
+                                    <Text style={styles.aboutTitle}>About</Text>
+                                    <Text style={styles.aboutText}>{displayUser.about}</Text>
+                                </View>
+                            )}
+
+                            {/* Actions */}
+                            <View style={styles.actionContainer}>
+                                <TouchableOpacity
+                                    style={[styles.actionButton, requestSent && styles.disabledButton]}
+                                    onPress={handleAddFriend}
+                                    disabled={requestSent}
+                                >
+                                    <Ionicons name={requestSent ? "checkmark" : "person-add"} size={20} color="#fff" />
+                                    <Text style={styles.actionButtonText}>
+                                        {requestSent ? "Request Sent" : "Add Friend"}
+                                    </Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[styles.actionButton, styles.secondaryButton]}
+                                    onPress={() => {
+                                        onClose();
+                                        router.push(`/(privateChat)/${user._id}`);
+                                    }}
+                                >
+                                    <Ionicons name="chatbubble-ellipses-outline" size={20} color={Colors.text} />
+                                    <Text style={[styles.actionButtonText, { color: Colors.text }]}>Message</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </ScrollView>
+                    )}
                 </View>
             </View>
         </Modal>
@@ -143,6 +184,10 @@ const styles = StyleSheet.create({
         borderColor: Colors.surface,
         backgroundColor: Colors.surface,
     },
+    loadingContainer: {
+        padding: 50,
+        alignItems: 'center',
+    },
     infoContainer: {
         padding: 20,
         alignItems: 'center',
@@ -156,7 +201,20 @@ const styles = StyleSheet.create({
     username: {
         fontSize: 16,
         color: Colors.textSecondary,
-        marginBottom: 20,
+        marginBottom: 15,
+    },
+    infoItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 15,
+        backgroundColor: 'rgba(0,0,0,0.03)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+    },
+    infoText: {
+        color: Colors.text,
+        fontSize: 14,
     },
     aboutContainer: {
         width: '100%',
