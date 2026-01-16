@@ -17,8 +17,11 @@ interface UserProfileModalProps {
     } | null;
 }
 
+import { useRouter } from 'expo-router';
+
 export default function UserProfileModal({ visible, onClose, user }: UserProfileModalProps) {
     const { socket, isConnected } = useSocket();
+    const router = useRouter();
     const [requestSent, setRequestSent] = useState(false);
 
     if (!user) return null;
@@ -82,7 +85,13 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                                 </Text>
                             </TouchableOpacity>
 
-                            <TouchableOpacity style={[styles.actionButton, styles.secondaryButton]}>
+                            <TouchableOpacity
+                                style={[styles.actionButton, styles.secondaryButton]}
+                                onPress={() => {
+                                    onClose();
+                                    router.push(`/(privateChat)/${user._id}`);
+                                }}
+                            >
                                 <Ionicons name="chatbubble-ellipses-outline" size={20} color={Colors.text} />
                                 <Text style={[styles.actionButtonText, { color: Colors.text }]}>Message</Text>
                             </TouchableOpacity>

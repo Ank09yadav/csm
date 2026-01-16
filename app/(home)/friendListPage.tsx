@@ -10,6 +10,7 @@ type ListType = 'friends' | 'requests' | 'sent';
 
 import { useSocket } from '../../context/SocketContext';
 import { Alert } from 'react-native';
+import { api } from '../../services/api';
 
 const FriendListPage = () => {
   const [activeTab, setActiveTab] = useState<ListType>('friends');
@@ -23,39 +24,48 @@ const FriendListPage = () => {
   const { token } = useAuth();
   const { socket, isConnected } = useSocket();
 
-  const API_URL = 'https://csmserver.onrender.com/api/user/friends';
-
   useEffect(() => {
     fetchData();
-  }, [token]);
+
+    if (socket && isConnected) {
+      socket.on('notification', (data) => {
+        if (data.type === 'friendRequest' || data.type === 'friendRequestAccepted') {
+          fetchData();
+        }
+      });
+
+      // Also listen for my own actions confirming success
+      socket.on('friendRequestAcceptedSuccess', fetchData);
+    }
+
+    return () => {
+      socket?.off('notification');
+      socket?.off('friendRequestAcceptedSuccess');
+    };
+  }, [token, socket, isConnected]);
 
   const fetchData = async () => {
     if (!token) return;
     try {
       setLoading(true);
-      const res = await fetch(API_URL, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (res.ok) {
-        // Map backend fields to frontend interface if needed, or just use as is if compatible
-        // Backend: _id, image, about, name, username
-        // UI expects: id, avatarUrl, bio, name
-        const mapUser = (u: any) => ({
-          id: u._id,
-          name: u.name || u.username,
-          avatarUrl: u.image,
-          bio: u.about,
-          status: u.isOnline ? 'online' : 'offline',
-          email: u.email || ''
-        } as User);
+      const data = await api('/user/friends', { authenticated: true });
 
-        setFriends(data.friends.map(mapUser));
-        setRequests(data.friendRequests.map(mapUser));
-        setSent(data.sentRequests.map(mapUser));
-      }
+      const mapUser = (u: any) => ({
+        id: u._id,
+        name: u.name || u.username,
+        avatarUrl: u.image,
+        bio: u.about,
+        status: u.isOnline ? 'online' : 'offline',
+        email: u.email || ''
+      } as User);
+
+      setFriends(data.friends.map(mapUser));
+      setRequests(data.friendRequests.map(mapUser));
+      setSent(data.sentRequests.map(mapUser));
+
     } catch (e) {
       console.error(e);
+      Alert.alert("Error", "Failed to fetch friends list");
     } finally {
       setLoading(false);
     }

@@ -42,12 +42,14 @@ function InitialLayout() {
 
 import { SocketProvider } from '../context/SocketContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import NotificationManager from '../components/NotificationManager';
 
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
         <SocketProvider>
+          <NotificationManager />
           <InitialLayout />
         </SocketProvider>
       </AuthProvider>
