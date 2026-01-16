@@ -128,15 +128,6 @@ export default function PrivateChatPage() {
         // Optimistic UI or other side effects can go here
     };
 
-    if (loading || !targetUser) {
-        return (
-            <View style={[styles.container, { justifyContent: 'center' }]}>
-                <Stack.Screen options={{ headerShown: false }} />
-                <ActivityIndicator size="large" color="#4A00E0" />
-            </View>
-        );
-    }
-
     return (
         <View style={styles.container}>
             <Stack.Screen
@@ -149,14 +140,20 @@ export default function PrivateChatPage() {
                             <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 10 }}>
                                 <Ionicons name="arrow-back" size={24} color="#333" />
                             </TouchableOpacity>
-                            <Image
-                                source={{ uri: targetUser.image || `https://ui-avatars.com/api/?name=${targetUser.username}&background=random&color=fff` }}
-                                style={styles.avatar}
-                            />
-                            <View>
-                                <Text style={styles.headerName}>{targetUser.name || targetUser.username}</Text>
-                                <Text style={styles.headerStatus}>{targetUser.isOnline ? 'Online' : 'Offline'}</Text>
-                            </View>
+                            {targetUser ? (
+                                <>
+                                    <Image
+                                        source={{ uri: targetUser.image || `https://ui-avatars.com/api/?name=${targetUser.username}&background=random&color=fff` }}
+                                        style={styles.avatar}
+                                    />
+                                    <View>
+                                        <Text style={styles.headerName}>{targetUser.name || targetUser.username}</Text>
+                                        <Text style={styles.headerStatus}>{targetUser.isOnline ? 'Online' : 'Offline'}</Text>
+                                    </View>
+                                </>
+                            ) : (
+                                <Text style={styles.headerName}>Loading...</Text>
+                            )}
                         </View>
                     ),
                     headerRight: () => (
@@ -167,42 +164,48 @@ export default function PrivateChatPage() {
                 }}
             />
 
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={{ flex: 1 }}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
-            >
-                <ScrollView
-                    ref={scrollViewRef}
-                    style={styles.chatArea}
-                    contentContainerStyle={{ padding: 15, paddingBottom: 20 }}
-                    onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
-                    keyboardShouldPersistTaps="handled"
+            {(loading || !targetUser) ? (
+                <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                    <ActivityIndicator size="large" color="#4A00E0" />
+                </View>
+            ) : (
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    style={{ flex: 1 }}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
                 >
-                    {messages.map((msg, index) => {
-                        // Updated check for both user ID formats
-                        const isMe = msg.sender._id === (currentUser as any)?._id || msg.sender._id === (currentUser as any)?.userId;
-                        return (
-                            <View
-                                key={msg._id || index}
-                                style={[
-                                    styles.messageBubble,
-                                    isMe ? styles.myMessage : styles.theirMessage
-                                ]}
-                            >
-                                <Text style={[styles.messageText, isMe ? { color: '#fff' } : { color: '#1a1a1a' }]}>
-                                    {msg.content}
-                                </Text>
-                                <Text style={[styles.timeText, isMe ? { color: 'rgba(255,255,255,0.7)' } : { color: '#999' }]}>
-                                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </Text>
-                            </View>
-                        );
-                    })}
-                </ScrollView>
+                    <ScrollView
+                        ref={scrollViewRef}
+                        style={styles.chatArea}
+                        contentContainerStyle={{ padding: 15, paddingBottom: 20 }}
+                        onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+                        keyboardShouldPersistTaps="handled"
+                    >
+                        {messages.map((msg, index) => {
+                            // Updated check for both user ID formats
+                            const isMe = msg.sender._id === (currentUser as any)?._id || msg.sender._id === (currentUser as any)?.userId;
+                            return (
+                                <View
+                                    key={msg._id || index}
+                                    style={[
+                                        styles.messageBubble,
+                                        isMe ? styles.myMessage : styles.theirMessage
+                                    ]}
+                                >
+                                    <Text style={[styles.messageText, isMe ? { color: '#fff' } : { color: Colors.text }]}>
+                                        {msg.content}
+                                    </Text>
+                                    <Text style={[styles.timeText, isMe ? { color: 'rgba(255,255,255,0.7)' } : { color: Colors.textMuted }]}>
+                                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </Text>
+                                </View>
+                            );
+                        })}
+                    </ScrollView>
 
-                <FooterInput onSend={handleSend} chatType="private" chatId={conversationId || undefined} />
-            </KeyboardAvoidingView>
+                    <FooterInput onSend={handleSend} chatType="private" chatId={conversationId || undefined} />
+                </KeyboardAvoidingView>
+            )}
 
             {/* Menu Modal */}
             <Modal
@@ -232,10 +235,15 @@ export default function PrivateChatPage() {
     );
 }
 
+// ... imports
+import { Colors } from '../../constants/Colors';
+
+// ... component body ...
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F5F7FA',
+        backgroundColor: Colors.background, // Dark background
     },
     headerLeftContainer: {
         flexDirection: 'row',
@@ -246,16 +254,18 @@ const styles = StyleSheet.create({
         height: 40,
         borderRadius: 20,
         marginRight: 10,
-        backgroundColor: '#E1E8ED',
+        backgroundColor: Colors.surfaceHighlight,
+        borderWidth: 1,
+        borderColor: Colors.border,
     },
     headerName: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#1c2d43',
+        color: Colors.text,
     },
     headerStatus: {
         fontSize: 12,
-        color: '#4CAF50',
+        color: Colors.success, // or textSecondary if offline
     },
     chatArea: {
         flex: 1,
@@ -273,13 +283,15 @@ const styles = StyleSheet.create({
     },
     myMessage: {
         alignSelf: 'flex-end',
-        backgroundColor: '#4A00E0', // Professional Purple
+        backgroundColor: Colors.primary, // Emerald Green
         borderBottomRightRadius: 4,
     },
     theirMessage: {
         alignSelf: 'flex-start',
-        backgroundColor: '#fff',
+        backgroundColor: Colors.surface, // Dark Card
         borderBottomLeftRadius: 4,
+        borderWidth: 1,
+        borderColor: Colors.border,
     },
     messageText: {
         fontSize: 15,
@@ -292,20 +304,22 @@ const styles = StyleSheet.create({
     },
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.1)',
+        backgroundColor: Colors.overlay, // Glass dark
         justifyContent: 'flex-start',
         alignItems: 'flex-end',
     },
     menuContainer: {
-        backgroundColor: 'white',
+        backgroundColor: Colors.surface,
         borderRadius: 12,
         width: 200,
         marginRight: 10,
         paddingVertical: 5,
+        borderWidth: 1,
+        borderColor: Colors.border,
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
         elevation: 5,
     },
     menuItem: {
@@ -317,6 +331,6 @@ const styles = StyleSheet.create({
     menuText: {
         fontSize: 15,
         marginLeft: 10,
-        color: '#333',
+        color: Colors.text,
     }
 });

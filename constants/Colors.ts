@@ -1,36 +1,39 @@
 /**
  * Application Theme Colors
- * Supports a modern dark theme aesthetic.
+ * A sophisticated, consistent Dark Theme with Emerald accents.
+ * Designed for visual comfort and professional aesthetic.
  */
 
 export const Colors = {
-    // Brand Colors
-    primary: '#6C63FF', // Vibrant Purple
-    primaryDark: '#5A52D5',
-    accent: '#FF6584',  // Soft Pink/Red for accents
+    // Brand Identity - "Emerald Connect"
+    primary: '#10B981',      // Fresh Emerald Green (Primary Action)
+    primaryDark: '#059669',  // Darker shade for press states
+    primaryLight: '#34D399', // Lighter for highlights
 
-    // Backgrounds
-    background: '#121212', // Deep dark background
-    surface: '#1E1E1E',    // Slightly lighter for cards/sheets
-    surfaceHighlight: '#2C2C2C',
+    accent: '#06B6D4',       // Cyan for secondary interactive elements
 
-    // Text
-    text: '#FFFFFF',
-    textSecondary: '#A0A0A0',
-    textMuted: '#666666',
+    // Backgrounds - Modern "Slate" Dark Mode
+    background: '#0F172A',   // Deep Slate (Rich Dark) - Main App Background
+    surface: '#1E293B',      // Lighter Slate - Cards, Modals, Headers
+    surfaceHighlight: '#334155', // Pressed states / Inputs
 
-    // States
-    success: '#4CAF50',
-    error: '#FF5252',
-    warning: '#FFC107',
-    info: '#2196F3',
+    // Text Hierarchy
+    text: '#F8FAFC',         // High Emphasis (Near White)
+    textSecondary: '#94A3B8', // Medium Emphasis (Blue-ish Gray)
+    textMuted: '#64748B',    // Low Emphasis (Subtle)
 
-    // Borders & Dividers
-    border: '#333333',
-    divider: '#2A2A2A',
+    // Functional Colors
+    success: '#22C55E',      // Green
+    error: '#EF4444',        // Red
+    warning: '#F59E0B',      // Amber
+    info: '#3B82F6',         // Blue
 
-    // Special
-    overlay: 'rgba(0,0,0,0.7)',
+    // UI Elements
+    border: '#334155',       // Subtle borders
+    divider: '#1E293B',
+
+    // Gradient / Special
+    overlay: 'rgba(15, 23, 42, 0.85)', // Glass-like dark overlay
     transparent: 'transparent',
 };
 

@@ -134,20 +134,20 @@ const FriendListPage = () => {
       </View>
 
       {activeTab === 'friends' && (
-        <Ionicons name="chatbubble-outline" size={24} color="#2e78b7" />
+        <Ionicons name="chatbubble-outline" size={24} color={Colors.primary} />
       )}
       {activeTab === 'requests' && (
         <View style={{ flexDirection: 'row' }}>
           <TouchableOpacity onPress={() => item.id && handleAccept(item.id)}>
-            <Ionicons name="checkmark-circle" size={28} color="#4CAF50" style={{ marginRight: 10 }} />
+            <Ionicons name="checkmark-circle" size={28} color={Colors.success} style={{ marginRight: 10 }} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => Alert.alert("TODO", "Reject not implemented yet")}>
-            <Ionicons name="close-circle" size={28} color="#ff4444" />
+            <Ionicons name="close-circle" size={28} color={Colors.error} />
           </TouchableOpacity>
         </View>
       )}
       {activeTab === 'sent' && (
-        <Text style={{ color: '#999', fontSize: 12 }}>Pending</Text>
+        <Text style={{ color: Colors.textMuted, fontSize: 12 }}>Pending</Text>
       )}
 
     </TouchableOpacity>
@@ -161,7 +161,7 @@ const FriendListPage = () => {
           if (activeTab !== 'friends') setActiveTab('friends');
           else router.back();
         }} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
+          <Ionicons name="arrow-back" size={24} color={Colors.text} />
         </TouchableOpacity>
 
         <Text style={styles.headerTitle}>{getHeaderTitle()}</Text>
@@ -171,7 +171,7 @@ const FriendListPage = () => {
             style={[styles.headerIcon, activeTab === 'requests' && styles.activeIcon]}
             onPress={() => setActiveTab('requests')}
           >
-            <Ionicons name="person-add-outline" size={22} color={activeTab === 'requests' ? "#2e78b7" : "#333"} />
+            <Ionicons name="person-add-outline" size={22} color={activeTab === 'requests' ? Colors.primary : Colors.text} />
             {requests.length > 0 && <View style={styles.badge} />}
           </TouchableOpacity>
 
@@ -179,7 +179,7 @@ const FriendListPage = () => {
             style={[styles.headerIcon, activeTab === 'sent' && styles.activeIcon]}
             onPress={() => setActiveTab('sent')}
           >
-            <Ionicons name="paper-plane-outline" size={22} color={activeTab === 'sent' ? "#2e78b7" : "#333"} />
+            <Ionicons name="paper-plane-outline" size={22} color={activeTab === 'sent' ? Colors.primary : Colors.text} />
           </TouchableOpacity>
         </View>
       </View>
@@ -202,10 +202,15 @@ const FriendListPage = () => {
 
 export default FriendListPage;
 
+// ... imports
+import { Colors } from '../../constants/Colors';
+
+// ... component logic ...
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: Colors.background, // Dark background
   },
   header: {
     flexDirection: 'row',
@@ -213,12 +218,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 15,
     paddingVertical: 15,
-    backgroundColor: '#fff',
+    backgroundColor: Colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: Colors.border,
     elevation: 2,
     shadowColor: '#000',
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.2, // Darker shadow
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 2 },
   },
@@ -228,7 +233,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1c2d43',
+    color: Colors.text,
   },
   headerRight: {
     flexDirection: 'row',
@@ -239,7 +244,7 @@ const styles = StyleSheet.create({
     padding: 4
   },
   activeIcon: {
-    backgroundColor: '#e3f2fd',
+    backgroundColor: Colors.surfaceHighlight, // Subtle highlight
     borderRadius: 20,
   },
   badge: {
@@ -249,7 +254,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#ff4444',
+    backgroundColor: Colors.error,
   },
   listContent: {
     padding: 15,
@@ -257,12 +262,15 @@ const styles = StyleSheet.create({
   friendItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: Colors.surface, // Dark Item
     padding: 15,
     borderRadius: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: Colors.border,
     elevation: 1,
     shadowColor: '#000',
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.1,
     shadowRadius: 2,
     shadowOffset: { width: 0, height: 1 },
   },
@@ -274,7 +282,9 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#eee',
+    backgroundColor: Colors.surfaceHighlight,
+    borderWidth: 2,
+    borderColor: Colors.primary, // Emerald border
   },
   onlineBadge: {
     position: 'absolute',
@@ -283,9 +293,9 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#4CAF50',
+    backgroundColor: Colors.success,
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: Colors.surface,
   },
   infoContainer: {
     flex: 1,
@@ -294,12 +304,12 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: Colors.text,
     marginBottom: 4,
   },
   bio: {
     fontSize: 14,
-    color: '#888',
+    color: Colors.textSecondary,
   },
   separator: {
     height: 10,
@@ -309,7 +319,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
-    color: '#999',
+    color: Colors.textMuted,
     fontSize: 16
   }
 });

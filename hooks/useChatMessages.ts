@@ -44,9 +44,15 @@ export const useChatMessages = (roomName: string) => {
 
         const handleNewMessage = (msg: Message) => {
             setMessages((prev) => {
-                // Deduplication
-                if (prev.some(m => m._id === msg._id)) return prev;
-                return [...prev, msg];
+                // Remove any temporary/optimistic message with the same content
+                const filtered = prev.filter(m =>
+                    !m._id.startsWith('temp-') || m.content !== msg.content
+                );
+
+                // Deduplication by ID
+                if (filtered.some(m => m._id === msg._id)) return filtered;
+
+                return [...filtered, msg];
             });
         };
 

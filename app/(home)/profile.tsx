@@ -19,11 +19,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../services/api';
 
+import { Colors } from '../../constants/Colors';
+
 const Profile = () => {
+    // ... existing logic ...
     const router = useRouter();
     const { user, signOut, isLoading: authLoading } = useAuth();
     const insets = useSafeAreaInsets();
 
+    // ... rest of state and effects same as original ...
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [about, setAbout] = useState('');
@@ -63,8 +67,6 @@ const Profile = () => {
         } catch (error: any) {
             console.error("Failed to fetch profile:", error);
 
-            // Handle "User not found" (404) or "Unauthorized" (401)
-            // This happens if the user was deleted/banned or environment switched (Local vs Prod)
             if (error.message?.includes('User not found') || error.message?.includes('Unauthorized')) {
                 console.log("Auto-logout triggered due to:", error.message);
                 Alert.alert(
@@ -74,7 +76,6 @@ const Profile = () => {
                 );
             }
 
-            // Fallback to local user context if API fails but not critical
             if (user) {
                 setUserStats(prev => ({ ...prev, username: user.username }));
             }
@@ -130,8 +131,8 @@ const Profile = () => {
     if (authLoading || fetching) {
         return (
             <View style={styles.centered}>
-                <ActivityIndicator size="large" color="#4A00E0" />
-                <Text style={{ marginTop: 10, color: '#666' }}>Loading details...</Text>
+                <ActivityIndicator size="large" color={Colors.primary} />
+                <Text style={{ marginTop: 10, color: Colors.textSecondary }}>Loading details...</Text>
             </View>
         );
     }
@@ -139,11 +140,11 @@ const Profile = () => {
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            style={{ flex: 1, backgroundColor: '#F5F7FA' }}
+            style={{ flex: 1, backgroundColor: Colors.background }}
         >
             <View style={[styles.headerContainer, { paddingTop: insets.top }]}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#333" />
+                    <Ionicons name="arrow-back" size={24} color={Colors.text} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>My Profile</Text>
                 <View style={{ width: 40 }} />
@@ -158,7 +159,7 @@ const Profile = () => {
                 <View style={styles.avatarSection}>
                     <View style={styles.avatarContainer}>
                         <Image
-                            source={{ uri: `https://ui-avatars.com/api/?name=${userStats.username}&background=4A00E0&color=fff&size=128` }}
+                            source={{ uri: `https://ui-avatars.com/api/?name=${userStats.username}&background=random&color=fff&size=128` }}
                             style={styles.avatar}
                         />
                         {userStats.isPremium && (
@@ -195,7 +196,7 @@ const Profile = () => {
                             value={name}
                             onChangeText={setName}
                             placeholder="Your Name"
-                            placeholderTextColor="#999"
+                            placeholderTextColor={Colors.textMuted}
                         />
                     </View>
 
@@ -206,7 +207,7 @@ const Profile = () => {
                             value={email}
                             onChangeText={setEmail}
                             placeholder="email@example.com"
-                            placeholderTextColor="#999"
+                            placeholderTextColor={Colors.textMuted}
                             keyboardType="email-address"
                             autoCapitalize="none"
                         />
@@ -219,7 +220,7 @@ const Profile = () => {
                             value={college}
                             onChangeText={setCollege}
                             placeholder="University Name"
-                            placeholderTextColor="#999"
+                            placeholderTextColor={Colors.textMuted}
                         />
                     </View>
 
@@ -230,7 +231,7 @@ const Profile = () => {
                             value={about}
                             onChangeText={setAbout}
                             placeholder="Tell us about yourself..."
-                            placeholderTextColor="#999"
+                            placeholderTextColor={Colors.textMuted}
                             multiline
                             numberOfLines={4}
                             textAlignVertical="top"
@@ -260,7 +261,7 @@ const Profile = () => {
                         style={styles.signOutButton}
                         onPress={onSignOutPress}
                     >
-                        <Ionicons name='log-out-outline' size={20} color="#FF3B30" style={{ marginRight: 8 }} />
+                        <Ionicons name='log-out-outline' size={20} color={Colors.error} style={{ marginRight: 8 }} />
                         <Text style={styles.signOutText}>Sign Out</Text>
                     </TouchableOpacity>
                 </View>
@@ -272,8 +273,8 @@ const Profile = () => {
 export default Profile;
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
-    centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F5F7FA' },
+    container: { flex: 1, backgroundColor: Colors.background },
+    centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background },
 
     headerContainer: {
         flexDirection: 'row',
@@ -281,43 +282,47 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: 20,
         paddingBottom: 15,
-        backgroundColor: '#fff',
+        backgroundColor: Colors.surface,
         borderBottomWidth: 1,
-        borderBottomColor: '#eee',
+        borderBottomColor: Colors.border,
     },
     backButton: { padding: 8 },
-    headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
+    headerTitle: { fontSize: 18, fontWeight: 'bold', color: Colors.text },
 
     avatarSection: {
         alignItems: 'center',
         paddingVertical: 32,
-        backgroundColor: '#fff',
+        backgroundColor: Colors.surface,
         borderBottomLeftRadius: 32,
         borderBottomRightRadius: 32,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 10,
-        elevation: 4,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.border,
         marginBottom: 24,
     },
     avatarContainer: { position: 'relative', marginBottom: 16 },
-    avatar: { width: 112, height: 112, borderRadius: 56, backgroundColor: '#E1E8ED' },
+    avatar: {
+        width: 112,
+        height: 112,
+        borderRadius: 56,
+        backgroundColor: Colors.surfaceHighlight,
+        borderWidth: 4,
+        borderColor: Colors.primary
+    },
     badge: {
         position: 'absolute',
         bottom: 0,
         right: 0,
-        backgroundColor: '#FFD700',
+        backgroundColor: Colors.warning,
         width: 28,
         height: 28,
         borderRadius: 14,
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 3,
-        borderColor: '#fff',
+        borderColor: Colors.surface,
     },
-    username: { fontSize: 24, fontWeight: 'bold', color: '#1a1a1a' },
-    membershipStatus: { fontSize: 13, color: '#4A00E0', marginTop: 4, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+    username: { fontSize: 24, fontWeight: 'bold', color: Colors.text },
+    membershipStatus: { fontSize: 13, color: Colors.primary, marginTop: 4, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
 
     formContainer: { paddingHorizontal: 20 },
 
@@ -328,59 +333,52 @@ const styles = StyleSheet.create({
     },
     statCard: {
         flex: 1,
-        backgroundColor: '#fff',
+        backgroundColor: Colors.surface,
         borderRadius: 20,
         padding: 16,
         alignItems: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
+        borderWidth: 1,
+        borderColor: Colors.border,
     },
-    statValue: { fontSize: 20, fontWeight: 'bold', color: '#333' },
-    statLabel: { fontSize: 12, color: '#888', marginTop: 4, fontWeight: '500' },
+    statValue: { fontSize: 20, fontWeight: 'bold', color: Colors.text },
+    statLabel: { fontSize: 12, color: Colors.textSecondary, marginTop: 4, fontWeight: '500' },
 
-    sectionTitle: { fontSize: 17, fontWeight: 'bold', color: '#1a1a1a', marginBottom: 16, marginTop: 8 },
+    sectionTitle: { fontSize: 17, fontWeight: 'bold', color: Colors.text, marginBottom: 16, marginTop: 8 },
 
     inputGroup: { marginBottom: 20 },
-    label: { fontSize: 13, color: '#666', fontWeight: '600', marginBottom: 8, marginLeft: 4 },
+    label: { fontSize: 13, color: Colors.textSecondary, fontWeight: '600', marginBottom: 8, marginLeft: 4 },
     input: {
         height: 56,
         borderWidth: 1,
-        borderColor: '#E1E8ED',
+        borderColor: Colors.border,
         borderRadius: 16,
         paddingHorizontal: 20,
-        backgroundColor: '#fff',
+        backgroundColor: Colors.surfaceHighlight,
         fontSize: 16,
-        color: '#333',
+        color: Colors.text,
     },
     textArea: { height: 120, textAlignVertical: 'top', paddingTop: 16 },
 
     readOnlyField: {
         marginBottom: 28,
-        backgroundColor: '#F8F9FA',
+        backgroundColor: Colors.surfaceHighlight,
         padding: 16,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: '#E1E8ED',
+        borderColor: Colors.border,
+        opacity: 0.7
     },
-    readOnlyText: { fontSize: 16, color: '#555', fontWeight: '500' },
+    readOnlyText: { fontSize: 16, color: Colors.text, fontWeight: '500' },
 
     saveButton: {
-        backgroundColor: '#4A00E0',
+        backgroundColor: Colors.primary,
         height: 56,
         borderRadius: 28,
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 16,
-        shadowColor: '#4A00E0',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.25,
-        shadowRadius: 8,
-        elevation: 5,
     },
-    saveButtonText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
+    saveButtonText: { color: Colors.text, fontSize: 18, fontWeight: 'bold' },
 
     signOutButton: {
         height: 56,
@@ -388,9 +386,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#FFF0F0',
+        backgroundColor: 'rgba(239, 68, 68, 0.1)', // Red tint based on Colors.error
         borderWidth: 1,
-        borderColor: '#FFE0E0',
+        borderColor: Colors.error,
     },
-    signOutText: { color: '#FF3B30', fontSize: 16, fontWeight: '600' }
+    signOutText: { color: Colors.error, fontSize: 16, fontWeight: '600' }
 });

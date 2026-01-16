@@ -2,7 +2,7 @@
   "expo": {
     "name": "csm",
     "slug": "csm",
-    "version": "1.12.1",
+    "version": "1.12.2",
     "orientation": "portrait",
     "icon": "./assets/images/csmLogo.png",
     "scheme": "csm",

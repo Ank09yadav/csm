@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'expo-router';
 import { useState } from 'react';
 import { rooms } from '../constants/data';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Colors } from '../constants/Colors';
 
 export function AppHeader() {
     const { user } = useAuth();
@@ -121,14 +122,14 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: '#2e78b7',
-        paddingBottom: 10,  // Add some bottom padding
-        minHeight: 60,      // Ensure strict minimum height for content
-        paddingHorizontal: 10,
-        elevation: 4,
-        shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        backgroundColor: Colors.surface, // Dark Slate
+        paddingBottom: 10,
+        minHeight: 60,
+        paddingHorizontal: 15, // Slightly more padding
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.border,
+        elevation: 0, // Flat look
+        shadowOpacity: 0,
     },
     leftContainer: {
         flexDirection: 'row',
@@ -136,54 +137,61 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     headerTitle: {
-        fontSize: 18,
+        fontSize: 20, // Slightly larger
         fontWeight: 'bold',
-        color: '#fff',
-        marginLeft: 10,
-        flex: 1, // Allow text to take available space
+        color: Colors.text,
+        marginLeft: 12,
+        flex: 1,
     },
     imageContainer: { marginHorizontal: 5 },
     profileImage: {
         width: 40,
         height: 40,
         borderRadius: 20,
-        borderWidth: 1.5,
-        borderColor: '#e9e8f1ff',
+        borderWidth: 2,
+        borderColor: Colors.primary, // Emerald Border
+        overflow: 'hidden',
     },
     rightContainer: {
         flexDirection: 'row',
         alignItems: 'center',
     },
     iconButton: {
-        padding: 6,
+        padding: 8,
         marginLeft: 8,
+        backgroundColor: Colors.surfaceHighlight, // Subtle circle bg
+        borderRadius: 20,
     },
     // Modal Styles
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.2)', // Dim background
-        justifyContent: 'flex-start', // Align to top
-        alignItems: 'flex-end', // Align to right
+        backgroundColor: Colors.overlay, // Darker dim
+        justifyContent: 'flex-start',
+        alignItems: 'flex-end',
     },
     dropdownMenu: {
-        marginTop: 50, // Position below header (adjust based on header height)
-        marginRight: 10,
-        backgroundColor: 'white',
-        borderRadius: 12,
+        marginTop: 50,
+        marginRight: 15,
+        backgroundColor: Colors.surface,
+        borderRadius: 16,
         paddingVertical: 10,
         width: 180,
-        elevation: 5, // Android shadow
+        borderWidth: 1,
+        borderColor: Colors.border,
         shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 10,
     },
     menuHeader: {
         paddingHorizontal: 15,
         paddingVertical: 8,
-        fontSize: 12,
-        color: '#999',
+        fontSize: 11,
+        color: Colors.textMuted,
         fontWeight: 'bold',
         textTransform: 'uppercase',
+        letterSpacing: 1,
     },
     menuItem: {
         flexDirection: 'row',
@@ -193,7 +201,8 @@ const styles = StyleSheet.create({
     },
     menuItemText: {
         marginLeft: 12,
-        fontSize: 16,
-        color: '#333',
+        fontSize: 15,
+        color: Colors.text,
+        fontWeight: '500',
     },
 });

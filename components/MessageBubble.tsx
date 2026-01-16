@@ -36,10 +36,12 @@ export default React.memo(function MessageBubble({ message, isMe, onSwipe, onPro
 
     return (
         <SwipeableMessage onSwipe={() => onSwipe(message)}>
-            <View style={styles.messageRow}>
-                <TouchableOpacity onPress={() => onProfilePress(message.sender)}>
-                    <Image source={{ uri: avatarUri }} style={styles.avatar} />
-                </TouchableOpacity>
+            <View style={[styles.messageRow, { justifyContent: isMe ? 'flex-end' : 'flex-start' }]}>
+                {!isMe && (
+                    <TouchableOpacity onPress={() => onProfilePress(message.sender)}>
+                        <Image source={{ uri: avatarUri }} style={styles.avatar} />
+                    </TouchableOpacity>
+                )}
 
                 <View style={[
                     styles.messageBubble,
@@ -65,6 +67,12 @@ export default React.memo(function MessageBubble({ message, isMe, onSwipe, onPro
                         {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </Text>
                 </View>
+
+                {isMe && (
+                    <TouchableOpacity onPress={() => onProfilePress(message.sender)}>
+                        <Image source={{ uri: avatarUri }} style={[styles.avatar, { marginRight: 0, marginLeft: 10 }]} />
+                    </TouchableOpacity>
+                )}
             </View>
         </SwipeableMessage>
     );
@@ -76,7 +84,7 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
         marginBottom: 16,
         width: '100%',
-        paddingRight: 40,
+        paddingHorizontal: 15, // Better padding
     },
     avatar: {
         width: 38,
@@ -88,10 +96,9 @@ const styles = StyleSheet.create({
         borderColor: Colors.border,
     },
     messageBubble: {
-        flex: 1,
+        maxWidth: '75%', // Dynamic size
         padding: 12,
         borderRadius: 16,
-        borderTopLeftRadius: 4,
         elevation: 1,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
@@ -99,18 +106,20 @@ const styles = StyleSheet.create({
         shadowRadius: 1,
     },
     myBubble: {
-        backgroundColor: '#2A2A35',
-        borderColor: Colors.primary,
+        backgroundColor: Colors.primary, // Emerald Green
+        borderColor: Colors.primaryDark,
         borderWidth: 1,
+        borderTopRightRadius: 4, // Sharp corner for sender
     },
     theirBubble: {
         backgroundColor: Colors.surface,
         borderColor: Colors.border,
         borderWidth: 1,
+        borderTopLeftRadius: 4, // Sharp corner for receiver
     },
     senderName: {
         fontSize: 11,
-        color: Colors.accent,
+        color: Colors.accent, // Cyan
         fontWeight: 'bold',
         marginBottom: 4,
     },
@@ -118,30 +127,30 @@ const styles = StyleSheet.create({
         fontSize: 15,
         lineHeight: 22,
     },
-    myMessageText: { color: Colors.text },
+    myMessageText: { color: '#fff' }, // White on Green
     theirMessageText: { color: Colors.text },
     timestamp: {
         fontSize: 10,
         marginTop: 6,
         alignSelf: 'flex-end',
     },
-    myTimestamp: { color: Colors.textMuted },
+    myTimestamp: { color: 'rgba(255,255,255,0.7)' }, // Lighter white on Green
     theirTimestamp: { color: Colors.textMuted },
     replyContext: {
         marginBottom: 6,
         padding: 6,
-        backgroundColor: 'rgba(0,0,0,0.2)',
+        backgroundColor: 'rgba(0,0,0,0.1)', // Subtle darken
         borderRadius: 4,
         flexDirection: 'row',
     },
     replyBar: {
         width: 3,
-        backgroundColor: Colors.primary,
+        backgroundColor: Colors.surface, // Contrast against bubble
         marginRight: 6,
         borderRadius: 2,
     },
     replyText: {
-        color: Colors.textSecondary,
+        color: Colors.text, // Readable
         fontSize: 12,
         fontStyle: 'italic',
     },

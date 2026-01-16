@@ -113,29 +113,14 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                             )}
 
                             {/* Actions */}
-                            <View style={styles.actionContainer}>
-                                <TouchableOpacity
-                                    style={[styles.actionButton, requestSent && styles.disabledButton]}
-                                    onPress={handleAddFriend}
-                                    disabled={requestSent}
-                                >
-                                    <Ionicons name={requestSent ? "checkmark" : "person-add"} size={20} color="#fff" />
-                                    <Text style={styles.actionButtonText}>
-                                        {requestSent ? "Request Sent" : "Add Friend"}
-                                    </Text>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity
-                                    style={[styles.actionButton, styles.secondaryButton]}
-                                    onPress={() => {
-                                        onClose();
-                                        router.push(`/(privateChat)/${user._id}`);
-                                    }}
-                                >
-                                    <Ionicons name="chatbubble-ellipses-outline" size={20} color={Colors.text} />
-                                    <Text style={[styles.actionButtonText, { color: Colors.text }]}>Message</Text>
-                                </TouchableOpacity>
-                            </View>
+                            <ActionButtons
+                                displayUser={displayUser}
+                                requestSent={requestSent}
+                                onRequestSent={() => {
+                                    handleAddFriend();
+                                }}
+                                onClose={onClose}
+                            />
                         </ScrollView>
                     )}
                 </View>
@@ -144,10 +129,72 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
     );
 }
 
+// Separate component to handle the logic cleanly using hooks if needed, or just inline.
+// Since we are inside the component, we can access context.
+// But we need 'currentUser' from AuthContext.
+import { useAuth } from '../context/AuthContext';
+
+function ActionButtons({ displayUser, requestSent, onRequestSent, onClose }: any) {
+    const { user: currentUser } = useAuth();
+    const router = useRouter();
+
+    // Check status
+    const isFriend = displayUser.friends?.includes((currentUser as any)?._id || (currentUser as any)?.userId) ||
+        displayUser.friends?.some((f: any) => f === (currentUser as any)?._id || f._id === (currentUser as any)?._id);
+
+    // Check if we already sent a request (UI state + data check)
+    // Note: displayUser.friendRequests contains IDs of people who requested *displayUser*
+    const isRequestPending = requestSent || (displayUser.friendRequests?.includes(currentUser?._id));
+
+    // Check if *they* sent *us* a request (optional, could show "Accept")
+
+    return (
+        <View style={styles.actionContainer}>
+            {isFriend ? (
+                <TouchableOpacity
+                    style={[styles.actionButton, styles.disabledButton]}
+                    disabled={true}
+                >
+                    <Ionicons name="people" size={20} color="#fff" />
+                    <Text style={styles.actionButtonText}>Friends</Text>
+                </TouchableOpacity>
+            ) : (
+                <TouchableOpacity
+                    style={[styles.actionButton, isRequestPending && styles.disabledButton]}
+                    onPress={onRequestSent}
+                    disabled={isRequestPending}
+                >
+                    <Ionicons name={isRequestPending ? "checkmark" : "person-add"} size={20} color="#fff" />
+                    <Text style={styles.actionButtonText}>
+                        {isRequestPending ? "Request Sent" : "Add Friend"}
+                    </Text>
+                </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+                style={[styles.actionButton, styles.secondaryButton, !isFriend && { opacity: 0.5 }]}
+                onPress={() => {
+                    if (isFriend) {
+                        onClose();
+                        router.push(`/(privateChat)/${displayUser._id}`);
+                    } else {
+                        // Optional: Alert that they must be friends
+                    }
+                }}
+                disabled={!isFriend}
+            >
+                <Ionicons name="chatbubble-ellipses-outline" size={20} color={isFriend ? Colors.text : Colors.textMuted} />
+                <Text style={[styles.actionButtonText, { color: isFriend ? Colors.text : Colors.textMuted }]}>Message</Text>
+            </TouchableOpacity>
+        </View>
+    );
+}
+
 const styles = StyleSheet.create({
+
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: Colors.overlay, // Use shared overlay color
         justifyContent: 'flex-end',
     },
     modalContent: {
@@ -156,10 +203,12 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 24,
         minHeight: '50%',
         paddingBottom: 40,
+        borderTopWidth: 1,
+        borderTopColor: Colors.border,
     },
     headerBackground: {
         height: 100,
-        backgroundColor: Colors.primaryDark,
+        backgroundColor: Colors.primary, // Emerald
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         position: 'relative',
@@ -168,7 +217,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 15,
         right: 15,
-        backgroundColor: 'rgba(0,0,0,0.3)',
+        backgroundColor: Colors.surfaceHighlight, // Better than rgba
         borderRadius: 20,
         padding: 5,
     },
@@ -207,7 +256,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: 15,
-        backgroundColor: 'rgba(0,0,0,0.03)',
+        backgroundColor: Colors.surfaceHighlight,
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 20,
@@ -218,7 +267,7 @@ const styles = StyleSheet.create({
     },
     aboutContainer: {
         width: '100%',
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        backgroundColor: Colors.surfaceHighlight,
         padding: 15,
         borderRadius: 12,
         marginBottom: 20,
@@ -252,7 +301,7 @@ const styles = StyleSheet.create({
         marginHorizontal: 5,
     },
     disabledButton: {
-        backgroundColor: Colors.success,
+        backgroundColor: Colors.success, // Green for "Sent" / "Friends"
     },
     secondaryButton: {
         backgroundColor: Colors.surfaceHighlight,
@@ -260,7 +309,7 @@ const styles = StyleSheet.create({
         borderColor: Colors.border,
     },
     actionButtonText: {
-        color: '#fff',
+        color: '#fff', // White text on buttons (Primary/Success)
         fontWeight: 'bold',
         marginLeft: 8,
         fontSize: 15,
