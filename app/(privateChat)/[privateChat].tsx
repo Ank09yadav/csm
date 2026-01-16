@@ -32,12 +32,77 @@ export default function PrivateChatPage() {
     const targetUserId = Array.isArray(targetUserIdProp) ? targetUserIdProp[0] : targetUserIdProp;
 
     const [menuVisible, setMenuVisible] = useState(false);
+    const [profileModalVisible, setProfileModalVisible] = useState(false);
     const [messages, setMessages] = useState<Message[]>([]);
     const [conversationId, setConversationId] = useState<string | null>(null);
     const [targetUser, setTargetUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     const scrollViewRef = useRef<ScrollView>(null);
+
+    // ... useEffects ...
+
+    // Action Handlers
+    const performAction = async (endpoint: string, body: any, successMsg?: string, callback?: () => void) => {
+        try {
+            const res = await fetch(`${API_BASE}${endpoint}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(body)
+            });
+            const data = await res.json();
+            if (res.ok) {
+                if (successMsg) Alert.alert("Success", successMsg);
+                if (callback) callback();
+                setMenuVisible(false);
+            } else {
+                Alert.alert("Error", data.error || "Action failed");
+            }
+        } catch (e) {
+            Alert.alert("Error", "Network error");
+        }
+    };
+
+    const handleClearChat = () => {
+        Alert.alert("Clear Chat", "Are you sure you want to clear this chat?", [
+            { text: "Cancel", style: "cancel" },
+            {
+                text: "Clear", style: "destructive", onPress: () => {
+                    performAction('/messages/clear', { conversationId }, undefined, () => setMessages([]));
+                }
+            }
+        ]);
+    };
+
+    const handleRemoveFriend = () => {
+        Alert.alert("Remove Friend", "Are you sure?", [
+            { text: "Cancel", style: "cancel" },
+            {
+                text: "Remove", style: "destructive", onPress: () => {
+                    performAction('/user/friends/remove', { targetUserId }, "Friend removed", () => router.back());
+                }
+            }
+        ]);
+    };
+
+    const handleReport = () => {
+        Alert.alert("Report User", "Report this user for inappropriate behavior?", [
+            { text: "Cancel", style: "cancel" },
+            { text: "Report", style: "destructive", onPress: () => performAction('/user/report', { targetUserId }, "User reported") }
+        ]);
+    };
+
+    const handleBlock = () => {
+        Alert.alert("Block User", "Block this user? You will not receive messages from them.", [
+            { text: "Cancel", style: "cancel" },
+            { text: "Block", style: "destructive", onPress: () => performAction('/user/block', { targetUserId }, "User blocked", () => router.back()) }
+        ]);
+    };
+
+    const handleMute = () => {
+        performAction('/user/mute', { targetUserId }, "Notifications muted");
+    };
+
 
     //Fetch Target User Details
     useEffect(() => {
@@ -134,21 +199,25 @@ export default function PrivateChatPage() {
                 options={{
                     headerTitle: '',
                     headerShadowVisible: false,
-                    headerStyle: { backgroundColor: '#fff' },
+                    headerStyle: { backgroundColor: Colors.surface },
                     headerLeft: () => (
                         <View style={styles.headerLeftContainer}>
                             <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 10 }}>
-                                <Ionicons name="arrow-back" size={24} color="#333" />
+                                <Ionicons name="arrow-back" size={24} color="#fff" />
                             </TouchableOpacity>
                             {targetUser ? (
                                 <>
-                                    <Image
-                                        source={{ uri: targetUser.image || `https://ui-avatars.com/api/?name=${targetUser.username}&background=random&color=fff` }}
-                                        style={styles.avatar}
-                                    />
+                                    <TouchableOpacity onLongPress={() => setProfileModalVisible(true)}>
+                                        <Image
+                                            source={{ uri: targetUser.image || `https://ui-avatars.com/api/?name=${targetUser.username}&background=random&color=fff` }}
+                                            style={styles.avatar}
+                                        />
+                                    </TouchableOpacity>
                                     <View>
                                         <Text style={styles.headerName}>{targetUser.name || targetUser.username}</Text>
-                                        <Text style={styles.headerStatus}>{targetUser.isOnline ? 'Online' : 'Offline'}</Text>
+                                        <Text style={[styles.headerStatus, { color: targetUser.isOnline ? Colors.success : Colors.textMuted }]}>
+                                            {targetUser.isOnline ? 'Online' : 'Offline'}
+                                        </Text>
                                     </View>
                                 </>
                             ) : (
@@ -158,7 +227,7 @@ export default function PrivateChatPage() {
                     ),
                     headerRight: () => (
                         <TouchableOpacity onPress={() => setMenuVisible(true)} style={{ padding: 5 }}>
-                            <Ionicons name="ellipsis-vertical" size={24} color="#333" />
+                            <Ionicons name="ellipsis-vertical" size={24} color="#fff" />
                         </TouchableOpacity>
                     ),
                 }}
@@ -166,11 +235,11 @@ export default function PrivateChatPage() {
 
             {(loading || !targetUser) ? (
                 <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-                    <ActivityIndicator size="large" color="#4A00E0" />
+                    <ActivityIndicator size="large" color={Colors.primary} />
                 </View>
             ) : (
                 <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                     style={{ flex: 1 }}
                     keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
                 >
@@ -220,15 +289,47 @@ export default function PrivateChatPage() {
                     onPress={() => setMenuVisible(false)}
                 >
                     <View style={[styles.menuContainer, { top: insets.top + 50 }]}>
-                        {/* 
-                            Implement actions if needed. 
-                            For now just placeholder or perform actual actions via API 
-                        */}
-                        <TouchableOpacity style={styles.menuItem} onPress={() => setMenuVisible(false)}>
-                            <Ionicons name="close-circle-outline" size={20} color="#333" />
-                            <Text style={styles.menuText}>Close</Text>
+                        <TouchableOpacity style={styles.menuItem} onPress={handleClearChat}>
+                            <Ionicons name="trash-outline" size={20} color={Colors.text} />
+                            <Text style={styles.menuText}>Clear Chat</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.menuItem} onPress={handleMute}>
+                            <Ionicons name="notifications-off-outline" size={20} color={Colors.text} />
+                            <Text style={styles.menuText}>Mute Notification</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.menuItem} onPress={handleRemoveFriend}>
+                            <Ionicons name="person-remove-outline" size={20} color={Colors.text} />
+                            <Text style={styles.menuText}>Remove Friend</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.menuItem} onPress={handleReport}>
+                            <Ionicons name="flag-outline" size={20} color={Colors.text} />
+                            <Text style={styles.menuText}>Report User</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.menuItem} onPress={handleBlock}>
+                            <Ionicons name="ban-outline" size={20} color={Colors.error} />
+                            <Text style={[styles.menuText, { color: Colors.error }]}>Block User</Text>
                         </TouchableOpacity>
                     </View>
+                </TouchableOpacity>
+            </Modal>
+
+            {/* Profile Image Modal */}
+            <Modal
+                visible={profileModalVisible}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setProfileModalVisible(false)}
+            >
+                <TouchableOpacity
+                    style={styles.imageModalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setProfileModalVisible(false)}
+                >
+                    <Image
+                        source={{ uri: targetUser?.image || `https://ui-avatars.com/api/?name=${targetUser?.username || 'User'}&background=random&color=fff` }}
+                        style={styles.fullImage}
+                        resizeMode="contain"
+                    />
                 </TouchableOpacity>
             </Modal>
         </View>
@@ -259,13 +360,13 @@ const styles = StyleSheet.create({
         borderColor: Colors.border,
     },
     headerName: {
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: 'bold',
         color: Colors.text,
     },
     headerStatus: {
         fontSize: 12,
-        color: Colors.success, // or textSecondary if offline
+        // Color dynamic in component
     },
     chatArea: {
         flex: 1,
@@ -311,7 +412,7 @@ const styles = StyleSheet.create({
     menuContainer: {
         backgroundColor: Colors.surface,
         borderRadius: 12,
-        width: 200,
+        width: 220,
         marginRight: 10,
         paddingVertical: 5,
         borderWidth: 1,
@@ -332,5 +433,15 @@ const styles = StyleSheet.create({
         fontSize: 15,
         marginLeft: 10,
         color: Colors.text,
+    },
+    imageModalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.95)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    fullImage: {
+        width: '100%',
+        height: 400,
     }
 });
