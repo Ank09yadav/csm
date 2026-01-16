@@ -18,7 +18,7 @@ expo-env.d.ts
 # Native (Expo Prebuild)
 /android
 /ios
-
+/landing
 # Native credentials
 *.jks
 *.p8

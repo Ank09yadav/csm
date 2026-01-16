@@ -14,6 +14,7 @@ import {
     Image,
     Alert
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../context/AuthContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,12 +34,14 @@ const Profile = () => {
     const [about, setAbout] = useState('');
     const [college, setCollege] = useState('');
     const [loading, setLoading] = useState(false);
+    const [uploading, setUploading] = useState(false);
     const [fetching, setFetching] = useState(true);
 
     const [userStats, setUserStats] = useState({
         reports: 0,
         isPremium: false,
-        username: ''
+        username: '',
+        image: ''
     });
 
     useEffect(() => {
@@ -61,7 +64,8 @@ const Profile = () => {
             setUserStats({
                 reports: userData.reports || 0,
                 isPremium: userData.isPremium || false,
-                username: userData.username
+                username: userData.username,
+                image: userData.image // Add image to stats/state
             });
 
         } catch (error: any) {
@@ -128,6 +132,46 @@ const Profile = () => {
         }
     };
 
+    const pickImage = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert('Permission denied', 'Sorry, we need camera roll permissions to make this work!');
+            return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.5,
+            base64: true,
+        });
+
+        if (!result.canceled && result.assets && result.assets[0].base64) {
+            handleImageUpload(`data:image/jpeg;base64,${result.assets[0].base64}`);
+        }
+    };
+
+    const handleImageUpload = async (base64Image: string) => {
+        try {
+            setUploading(true);
+            const response = await api('/user/profile-pic', {
+                method: 'POST',
+                authenticated: true,
+                body: JSON.stringify({ image: base64Image })
+            });
+
+            if (response.user) {
+                fetchUserData();
+                Alert.alert("Success", "Profile picture updated!");
+            }
+        } catch (e: any) {
+            Alert.alert("Error", e.message || "Failed to upload image");
+        } finally {
+            setUploading(false);
+        }
+    };
+
     if (authLoading || fetching) {
         return (
             <View style={styles.centered}>
@@ -158,10 +202,16 @@ const Profile = () => {
                 {/* Avatar Section */}
                 <View style={styles.avatarSection}>
                     <View style={styles.avatarContainer}>
-                        <Image
-                            source={{ uri: `https://ui-avatars.com/api/?name=${userStats.username}&background=random&color=fff&size=128` }}
-                            style={styles.avatar}
-                        />
+                        <TouchableOpacity onPress={pickImage} disabled={uploading} activeOpacity={0.7}>
+                            <Image
+                                source={{ uri: userStats.image || `https://ui-avatars.com/api/?name=${userStats.username}&background=random&color=fff&size=128` }}
+                                style={[styles.avatar, uploading && { opacity: 0.5 }]}
+                            />
+                            <View style={styles.editIconBadge}>
+                                {uploading ? <ActivityIndicator size="small" color="#fff" /> : <Ionicons name="camera" size={20} color="#fff" />}
+                            </View>
+                        </TouchableOpacity>
+
                         {userStats.isPremium && (
                             <View style={styles.badge}>
                                 <Ionicons name="star" size={14} color="white" />
@@ -320,6 +370,21 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderWidth: 3,
         borderColor: Colors.surface,
+        zIndex: 2
+    },
+    editIconBadge: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        backgroundColor: Colors.primary,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 3,
+        borderColor: Colors.surface,
+        zIndex: 1
     },
     username: { fontSize: 24, fontWeight: 'bold', color: Colors.text },
     membershipStatus: { fontSize: 13, color: Colors.primary, marginTop: 4, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },

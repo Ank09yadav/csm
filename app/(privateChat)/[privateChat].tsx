@@ -6,8 +6,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FooterInput from '../../components/FooterInput';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
+import { API_URL } from '@/constants/api';
 
-const API_BASE = 'https://csmserver.onrender.com/api';
+const API_BASE = API_URL;
 
 interface Message {
     _id: string;
@@ -37,6 +38,7 @@ export default function PrivateChatPage() {
     const [conversationId, setConversationId] = useState<string | null>(null);
     const [targetUser, setTargetUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [isTyping, setIsTyping] = useState(false);
 
     const scrollViewRef = useRef<ScrollView>(null);
 
@@ -188,6 +190,39 @@ export default function PrivateChatPage() {
         };
     }, [socket, conversationId]);
 
+    // Real-time Status & Typing Listeners
+    useEffect(() => {
+        if (!socket || !targetUserId) return;
+
+        const handleStatusChange = (data: { userId: string, isOnline: boolean }) => {
+            if (data.userId === targetUserIdProp) { // use Prop or string ID
+                setTargetUser((prev: any) => prev ? { ...prev, isOnline: data.isOnline } : prev);
+            }
+        };
+
+        const handleTyping = (data: { userId: string, conversationId: string }) => {
+            if (data.userId !== (currentUser as any)?._id && data.conversationId === conversationId) {
+                setIsTyping(true);
+            }
+        };
+
+        const handleStopTyping = (data: { userId: string, conversationId: string }) => {
+            if (data.conversationId === conversationId) {
+                setIsTyping(false);
+            }
+        };
+
+        socket.on('userStatusChanged', handleStatusChange);
+        socket.on('typing', handleTyping);
+        socket.on('stopTyping', handleStopTyping);
+
+        return () => {
+            socket.off('userStatusChanged', handleStatusChange);
+            socket.off('typing', handleTyping);
+            socket.off('stopTyping', handleStopTyping);
+        };
+    }, [socket, targetUserId]);
+
 
     const handleSend = (text: string) => {
         // Optimistic UI or other side effects can go here
@@ -216,7 +251,7 @@ export default function PrivateChatPage() {
                                     <View>
                                         <Text style={styles.headerName}>{targetUser.name || targetUser.username}</Text>
                                         <Text style={[styles.headerStatus, { color: targetUser.isOnline ? Colors.success : Colors.textMuted }]}>
-                                            {targetUser.isOnline ? 'Online' : 'Offline'}
+                                            {isTyping ? 'Typing...' : (targetUser.isOnline ? 'Online' : 'Offline')}
                                         </Text>
                                     </View>
                                 </>
@@ -239,9 +274,9 @@ export default function PrivateChatPage() {
                 </View>
             ) : (
                 <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                     style={{ flex: 1 }}
-                    keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
                 >
                     <ScrollView
                         ref={scrollViewRef}

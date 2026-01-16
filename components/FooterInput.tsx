@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, TextInput, TouchableOpacity, StyleSheet, Platform, KeyboardAvoidingView, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,7 +9,7 @@ interface FooterInputProps {
     onSend?: (message: string) => void;
     chatType?: 'public' | 'private';
     chatId?: string;
-    replyingTo?: any | null; // Allow generic for now to avoid circular dependency
+    replyingTo?: any | null;
     onCancelReply?: () => void;
 }
 
@@ -17,9 +17,32 @@ export default function FooterInput({ onSend, chatType, chatId, replyingTo, onCa
     const [message, setMessage] = useState('');
     const insets = useSafeAreaInsets();
     const { socket, isConnected } = useSocket();
+    const typingTimeoutRef = useRef<any>(null); // Use any to avoid NodeJS.Timeout vs number issues in React Native
+
+    const handleTextChange = (text: string) => {
+        setMessage(text);
+
+        if (!socket || !isConnected || !chatId) return;
+
+        // Emit typing event
+        socket.emit('typing', { conversationId: chatId });
+
+        // Debounce stop typing
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+        typingTimeoutRef.current = setTimeout(() => {
+            socket.emit('stopTyping', { conversationId: chatId });
+        }, 2000);
+    };
 
     const handleSend = () => {
         if (message.trim().length > 0) {
+
+            // Stop typing immediately when sending
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+                if (socket && chatId) socket.emit('stopTyping', { conversationId: chatId });
+            }
 
             if (chatType && chatId && socket && isConnected) {
                 const payload = {
@@ -81,7 +104,7 @@ export default function FooterInput({ onSend, chatType, chatId, replyingTo, onCa
                         style={styles.textInput}
                         placeholder='Message...'
                         value={message}
-                        onChangeText={setMessage}
+                        onChangeText={handleTextChange}
                         multiline
                         placeholderTextColor={Colors.textSecondary}
                         maxLength={500}
