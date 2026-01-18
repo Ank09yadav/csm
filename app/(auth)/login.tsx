@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Colors } from '../../constants/Colors';
 import { View, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import AuthLayout from '../../components/auth/AuthLayout';
@@ -93,7 +94,7 @@ const styles = StyleSheet.create({
         marginBottom: 24,
     },
     forgotPasswordText: {
-        color: '#4A00E0',
+        color: Colors.accent,
         fontWeight: '600',
     },
     footer: {
@@ -102,10 +103,10 @@ const styles = StyleSheet.create({
         marginTop: 24,
     },
     footerText: {
-        color: '#666',
+        color: Colors.textSecondary,
     },
     footerLink: {
-        color: '#4A00E0',
+        color: Colors.primary,
         fontWeight: 'bold',
     },
 });

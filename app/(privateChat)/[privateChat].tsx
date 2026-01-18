@@ -7,6 +7,8 @@ import FooterInput from '../../components/FooterInput';
 import { useAuth } from '../../context/AuthContext';
 import { useSocket } from '../../context/SocketContext';
 import { API_URL } from '@/constants/api';
+import ReportModal from '../../components/ReportModal';
+import { api } from '../../services/api';
 
 const API_BASE = API_URL;
 
@@ -87,11 +89,32 @@ export default function PrivateChatPage() {
         ]);
     };
 
+    const [reportModalVisible, setReportModalVisible] = useState(false);
+    const [reporting, setReporting] = useState(false);
+
+    // ... (rest of methods)
+
+    const handleReportSubmit = async (reason: string) => {
+        setReporting(true);
+        try {
+            await api('/user/report', {
+                method: 'POST',
+                authenticated: true,
+                body: JSON.stringify({ targetUserId, reason })
+            });
+            Alert.alert("Success", "User reported");
+            setReportModalVisible(false);
+            setMenuVisible(false);
+        } catch (error: any) {
+            Alert.alert("Error", error.message || "Failed to submit report");
+        } finally {
+            setReporting(false);
+        }
+    };
+
     const handleReport = () => {
-        Alert.alert("Report User", "Report this user for inappropriate behavior?", [
-            { text: "Cancel", style: "cancel" },
-            { text: "Report", style: "destructive", onPress: () => performAction('/user/report', { targetUserId }, "User reported") }
-        ]);
+        setReportModalVisible(true);
+        // Alert handled in modal now
     };
 
     const handleBlock = () => {
@@ -274,9 +297,9 @@ export default function PrivateChatPage() {
                 </View>
             ) : (
                 <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                     style={{ flex: 1 }}
-                    keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
                 >
                     <ScrollView
                         ref={scrollViewRef}
@@ -367,6 +390,13 @@ export default function PrivateChatPage() {
                     />
                 </TouchableOpacity>
             </Modal>
+
+            <ReportModal
+                visible={reportModalVisible}
+                onClose={() => setReportModalVisible(false)}
+                onSubmit={handleReportSubmit}
+                loading={reporting}
+            />
         </View>
     );
 }

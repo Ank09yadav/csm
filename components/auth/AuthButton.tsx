@@ -2,6 +2,8 @@ import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, TouchableOpacityProps } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { Colors } from '../../constants/Colors';
+
 interface AuthButtonProps extends TouchableOpacityProps {
     title: string;
     loading?: boolean;
@@ -20,13 +22,13 @@ export default function AuthButton({ title, loading, variant = 'primary', style,
                 style={[styles.container, style]}
             >
                 <LinearGradient
-                    colors={disabled ? ['#ccc', '#999'] : ['#4A00E0', '#8E2DE2']}
+                    colors={disabled ? [Colors.textMuted, Colors.surfaceHighlight] : [Colors.primary, Colors.primaryDark]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.gradient}
                 >
                     {loading ? (
-                        <ActivityIndicator color="#fff" />
+                        <ActivityIndicator color={Colors.text} />
                     ) : (
                         <Text style={styles.text}>{title}</Text>
                     )}
@@ -43,7 +45,7 @@ export default function AuthButton({ title, loading, variant = 'primary', style,
             {...props}
         >
             {loading ? (
-                <ActivityIndicator color="#4A00E0" />
+                <ActivityIndicator color={Colors.primary} />
             ) : (
                 <Text style={styles.secondaryText}>{title}</Text>
             )}
@@ -65,7 +67,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     text: {
-        color: '#fff',
+        color: Colors.text,
         fontSize: 16,
         fontWeight: 'bold',
         letterSpacing: 0.5,
@@ -77,12 +79,12 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#4A00E0',
+        borderColor: Colors.primary,
         marginTop: 8,
         backgroundColor: 'transparent'
     },
     secondaryText: {
-        color: '#4A00E0',
+        color: Colors.primary,
         fontSize: 16,
         fontWeight: '600'
     }

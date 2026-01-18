@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, Image, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Modal, Image, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { Colors } from '../constants/Colors';
 import { Ionicons } from '@expo/vector-icons';
 import { useSocket } from '../context/SocketContext';
 import { Logger } from '../services/Logger';
 import { userService } from '../services/userService';
 import { useRouter } from 'expo-router';
+import { useAuth } from '../context/AuthContext';
+import { api } from '../services/api';
+import ReportModal from './ReportModal';
 
 interface UserProfileModalProps {
     visible: boolean;
@@ -17,15 +20,19 @@ interface UserProfileModalProps {
         image?: string;
         about?: string;
         college?: string;
+        createdAt?: string;
     } | null;
 }
 
 export default function UserProfileModal({ visible, onClose, user }: UserProfileModalProps) {
     const { socket, isConnected } = useSocket();
+    const { user: currentUser } = useAuth();
     const router = useRouter();
     const [requestSent, setRequestSent] = useState(false);
     const [fullUser, setFullUser] = useState<any>(null);
     const [loading, setLoading] = useState(false);
+    const [reportModalVisible, setReportModalVisible] = useState(false);
+    const [reporting, setReporting] = useState(false);
 
     useEffect(() => {
         if (visible && user?._id) {
@@ -49,9 +56,26 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
         }
     };
 
+    const handleReportSubmit = async (reason: string) => {
+        setReporting(true);
+        try {
+            await api('/user/report', {
+                method: 'POST',
+                authenticated: true,
+                body: JSON.stringify({ targetUserId: user?._id, reason })
+            });
+            Alert.alert("Report Submitted", "Thank you for your report. We will review it shortly.");
+            setReportModalVisible(false);
+        } catch (error: any) {
+            Alert.alert("Error", error.message || "Failed to submit report");
+        } finally {
+            setReporting(false);
+        }
+    };
+
     if (!user) return null;
 
-    // Merge passed user data with fetched data (fetched takes precedence)
+    // Merge passed user data with fetched data
     const displayUser = { ...user, ...fullUser };
 
     const handleAddFriend = () => {
@@ -66,6 +90,24 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
         ? displayUser.image
         : `https://ui-avatars.com/api/?name=${displayUser.name || displayUser.username}&background=random&color=fff`;
 
+    // Date formatting
+    const joinedDate = displayUser.createdAt ? new Date(displayUser.createdAt).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    }) : 'Unknown';
+
+    // Friend Logic
+    // Check if friends list contains current user ID (String or Object comparison)
+    const isFriend = displayUser.friends?.some((f: any) =>
+        (typeof f === 'string' && f === currentUser?._id) ||
+        (typeof f === 'object' && f._id === currentUser?._id)
+    );
+
+    const isRequestPending = requestSent ||
+        displayUser.friendRequests?.some((id: any) => id.toString() === currentUser?._id) ||
+        displayUser.sentRequests?.some((id: any) => id.toString() === currentUser?._id);
+
     return (
         <Modal
             visible={visible}
@@ -75,17 +117,26 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
         >
             <View style={styles.modalOverlay}>
                 <View style={styles.modalContent}>
-
                     {/* Header Image Background */}
                     <View style={styles.headerBackground}>
                         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
                             <Ionicons name="close" size={24} color="#fff" />
                         </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={styles.reportButton}
+                            onPress={() => setReportModalVisible(true)}
+                        >
+                            <Ionicons name="flag-outline" size={20} color="#fff" />
+                        </TouchableOpacity>
                     </View>
 
-                    {/* Profile Image */}
-                    <View style={styles.profileImageContainer}>
+                    {/* Profile Image - Left Aligned */}
+                    <View style={styles.profileHeaderSection}>
                         <Image source={{ uri: avatarUri }} style={styles.profileImage} />
+                        <View style={{ flex: 1 }}>
+                            {/* Empty space for now, or stats */}
+                        </View>
                     </View>
 
                     {/* Content */}
@@ -95,141 +146,151 @@ export default function UserProfileModal({ visible, onClose, user }: UserProfile
                         </View>
                     ) : (
                         <ScrollView contentContainerStyle={styles.infoContainer}>
-                            <Text style={styles.name}>{displayUser.name || displayUser.username}</Text>
-                            <Text style={styles.username}>@{displayUser.username}</Text>
+                            <View style={styles.nameSection}>
+                                <Text style={styles.name}>{displayUser.name || displayUser.username}</Text>
+                                <Text style={styles.username}>@{displayUser.username}</Text>
+                                <Text style={styles.joinedDate}>Joined {joinedDate}</Text>
+                            </View>
+
+                            <View style={styles.divider} />
 
                             {displayUser.college && (
-                                <View style={styles.infoItem}>
-                                    <Ionicons name="school-outline" size={18} color={Colors.textSecondary} style={{ marginRight: 8 }} />
-                                    <Text style={styles.infoText}>{displayUser.college}</Text>
+                                <View style={styles.infoRow}>
+                                    <View style={styles.iconBox}>
+                                        <Ionicons name="school-outline" size={20} color={Colors.primary} />
+                                    </View>
+                                    <View>
+                                        <Text style={styles.label}>Institution</Text>
+                                        <Text style={styles.value}>{displayUser.college}</Text>
+                                    </View>
                                 </View>
                             )}
 
                             {displayUser.about && (
-                                <View style={styles.aboutContainer}>
-                                    <Text style={styles.aboutTitle}>About</Text>
-                                    <Text style={styles.aboutText}>{displayUser.about}</Text>
+                                <View style={styles.infoRow}>
+                                    <View style={styles.iconBox}>
+                                        <Ionicons name="information-circle-outline" size={20} color={Colors.primary} />
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.label}>About</Text>
+                                        <Text style={styles.value}>{displayUser.about}</Text>
+                                    </View>
                                 </View>
                             )}
 
-                            {/* Actions */}
-                            <ActionButtons
-                                displayUser={displayUser}
-                                requestSent={requestSent}
-                                onRequestSent={() => {
-                                    handleAddFriend();
-                                }}
-                                onClose={onClose}
-                            />
+                            {/* Action Buttons */}
+                            <View style={styles.actionContainer}>
+                                {isFriend ? (
+                                    <>
+                                        <TouchableOpacity style={[styles.actionButton, styles.friendIndicator]}>
+                                            <Ionicons name="people" size={20} color={Colors.text} />
+                                            <Text style={[styles.actionText, { color: Colors.text }]}>Friends</Text>
+                                        </TouchableOpacity>
+
+                                        <TouchableOpacity
+                                            style={[styles.actionButton, styles.messageButton]}
+                                            onPress={() => {
+                                                onClose();
+                                                router.push(`/(privateChat)/${displayUser._id}`);
+                                            }}
+                                        >
+                                            <Ionicons name="chatbubble-ellipses" size={20} color="#fff" />
+                                            <Text style={styles.actionText}>Message</Text>
+                                        </TouchableOpacity>
+                                    </>
+                                ) : (
+                                    <>
+                                        <TouchableOpacity
+                                            style={[
+                                                styles.actionButton,
+                                                styles.addButton,
+                                                isRequestPending && styles.disabledButton
+                                            ]}
+                                            onPress={handleAddFriend}
+                                            disabled={isRequestPending}
+                                        >
+                                            <Ionicons name={isRequestPending ? "time-outline" : "person-add"} size={20} color="#fff" />
+                                            <Text style={styles.actionText}>
+                                                {isRequestPending ? "Request Sent" : "Add Friend"}
+                                            </Text>
+                                        </TouchableOpacity>
+
+                                        {/* Disabled/Hidden Message Button for non-friends if strictly required by user request ("enable... when friends") */}
+                                        <TouchableOpacity
+                                            style={[styles.actionButton, styles.messageButton, { opacity: 0.5 }]}
+                                            disabled={true}
+                                        >
+                                            <Ionicons name="chatbubble-ellipses-outline" size={20} color="#fff" />
+                                            <Text style={styles.actionText}>Message</Text>
+                                        </TouchableOpacity>
+                                    </>
+                                )}
+                            </View>
+
                         </ScrollView>
                     )}
                 </View>
             </View>
+
+            <ReportModal
+                visible={reportModalVisible}
+                onClose={() => setReportModalVisible(false)}
+                onSubmit={handleReportSubmit}
+                loading={reporting}
+            />
         </Modal>
     );
 }
 
-// Separate component to handle the logic cleanly using hooks if needed, or just inline.
-// Since we are inside the component, we can access context.
-// But we need 'currentUser' from AuthContext.
-import { useAuth } from '../context/AuthContext';
-
-function ActionButtons({ displayUser, requestSent, onRequestSent, onClose }: any) {
-    const { user: currentUser } = useAuth();
-    const router = useRouter();
-
-    // Check status
-    const isFriend = displayUser.friends?.includes((currentUser as any)?._id || (currentUser as any)?.userId) ||
-        displayUser.friends?.some((f: any) => f === (currentUser as any)?._id || f._id === (currentUser as any)?._id);
-
-    // Check if we already sent a request (UI state + data check)
-    // Note: displayUser.friendRequests contains IDs of people who requested *displayUser*
-    const isRequestPending = requestSent || (displayUser.friendRequests?.includes(currentUser?._id));
-
-    // Check if *they* sent *us* a request (optional, could show "Accept")
-
-    return (
-        <View style={styles.actionContainer}>
-            {isFriend ? (
-                <TouchableOpacity
-                    style={[styles.actionButton, styles.disabledButton]}
-                    disabled={true}
-                >
-                    <Ionicons name="people" size={20} color="#fff" />
-                    <Text style={styles.actionButtonText}>Friends</Text>
-                </TouchableOpacity>
-            ) : (
-                <TouchableOpacity
-                    style={[styles.actionButton, isRequestPending && styles.disabledButton]}
-                    onPress={onRequestSent}
-                    disabled={isRequestPending}
-                >
-                    <Ionicons name={isRequestPending ? "checkmark" : "person-add"} size={20} color="#fff" />
-                    <Text style={styles.actionButtonText}>
-                        {isRequestPending ? "Request Sent" : "Add Friend"}
-                    </Text>
-                </TouchableOpacity>
-            )}
-
-            <TouchableOpacity
-                style={[styles.actionButton, styles.secondaryButton, !isFriend && { opacity: 0.5 }]}
-                onPress={() => {
-                    if (isFriend) {
-                        onClose();
-                        router.push(`/(privateChat)/${displayUser._id}`);
-                    } else {
-                        // Optional: Alert that they must be friends
-                    }
-                }}
-                disabled={!isFriend}
-            >
-                <Ionicons name="chatbubble-ellipses-outline" size={20} color={isFriend ? Colors.text : Colors.textMuted} />
-                <Text style={[styles.actionButtonText, { color: isFriend ? Colors.text : Colors.textMuted }]}>Message</Text>
-            </TouchableOpacity>
-        </View>
-    );
-}
-
 const styles = StyleSheet.create({
-
     modalOverlay: {
         flex: 1,
-        backgroundColor: Colors.overlay, // Use shared overlay color
+        backgroundColor: Colors.overlay,
         justifyContent: 'flex-end',
     },
     modalContent: {
         backgroundColor: Colors.surface,
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        minHeight: '50%',
-        paddingBottom: 40,
+        borderTopLeftRadius: 30,
+        borderTopRightRadius: 30,
+        height: '85%', // Taller modal
         borderTopWidth: 1,
         borderTopColor: Colors.border,
     },
     headerBackground: {
-        height: 100,
-        backgroundColor: Colors.primary, // Emerald
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        position: 'relative',
+        height: 120,
+        backgroundColor: Colors.primary,
+        borderTopLeftRadius: 30,
+        borderTopRightRadius: 30,
     },
     closeButton: {
         position: 'absolute',
-        top: 15,
-        right: 15,
-        backgroundColor: Colors.surfaceHighlight, // Better than rgba
+        top: 20,
+        right: 20,
+        backgroundColor: 'rgba(0,0,0,0.2)',
         borderRadius: 20,
         padding: 5,
+        zIndex: 10
     },
-    profileImageContainer: {
-        alignItems: 'center',
-        marginTop: -50,
+    reportButton: {
+        position: 'absolute',
+        top: 20,
+        left: 20,
+        backgroundColor: 'rgba(0,0,0,0.2)',
+        borderRadius: 20,
+        padding: 5,
+        zIndex: 10
+    },
+    profileHeaderSection: {
+        paddingHorizontal: 24,
+        marginTop: -60, // Overlap header
+        marginBottom: 10,
+        alignItems: 'flex-start', // Left align
     },
     profileImage: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        borderWidth: 4,
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        borderWidth: 6,
         borderColor: Colors.surface,
         backgroundColor: Colors.surface,
     },
@@ -238,80 +299,96 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     infoContainer: {
-        padding: 20,
-        alignItems: 'center',
+        paddingHorizontal: 24,
+        paddingBottom: 40,
+    },
+    nameSection: {
+        marginTop: 10,
+        marginBottom: 20,
+        alignItems: 'flex-start' // Left Align
     },
     name: {
-        fontSize: 24,
+        fontSize: 26,
         fontWeight: 'bold',
         color: Colors.text,
-        marginBottom: 4,
     },
     username: {
         fontSize: 16,
-        color: Colors.textSecondary,
-        marginBottom: 15,
+        color: Colors.primary,
+        fontWeight: '600',
+        marginBottom: 4
     },
-    infoItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 15,
-        backgroundColor: Colors.surfaceHighlight,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 20,
-    },
-    infoText: {
-        color: Colors.text,
-        fontSize: 14,
-    },
-    aboutContainer: {
-        width: '100%',
-        backgroundColor: Colors.surfaceHighlight,
-        padding: 15,
-        borderRadius: 12,
-        marginBottom: 20,
-    },
-    aboutTitle: {
-        color: Colors.textMuted,
+    joinedDate: {
         fontSize: 12,
-        fontWeight: 'bold',
-        marginBottom: 5,
-        textTransform: 'uppercase',
+        color: Colors.textMuted
     },
-    aboutText: {
+    divider: {
+        height: 1,
+        backgroundColor: Colors.border,
+        width: '100%',
+        marginBottom: 20
+    },
+    infoRow: {
+        flexDirection: 'row',
+        marginBottom: 24,
+        alignItems: 'flex-start'
+    },
+    iconBox: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: Colors.surfaceHighlight,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 16
+    },
+    label: {
+        fontSize: 13,
+        color: Colors.textMuted,
+        fontWeight: '600',
+        marginBottom: 4,
+        textTransform: 'uppercase'
+    },
+    value: {
+        fontSize: 16,
         color: Colors.text,
-        fontSize: 14,
-        lineHeight: 20,
+        lineHeight: 24
     },
     actionContainer: {
         flexDirection: 'row',
-        width: '100%',
-        justifyContent: 'space-between',
-        marginTop: 10,
+        gap: 12,
+        marginTop: 10
     },
     actionButton: {
         flex: 1,
-        backgroundColor: Colors.primary,
+        height: 50,
+        borderRadius: 12,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 12,
-        borderRadius: 12,
-        marginHorizontal: 5,
+        gap: 8,
     },
-    disabledButton: {
-        backgroundColor: Colors.success, // Green for "Sent" / "Friends"
-    },
-    secondaryButton: {
+    addButton: {
         backgroundColor: Colors.surfaceHighlight,
         borderWidth: 1,
-        borderColor: Colors.border,
+        borderColor: Colors.border
     },
-    actionButtonText: {
-        color: '#fff', // White text on buttons (Primary/Success)
+    messageButton: {
+        backgroundColor: Colors.primary,
+    },
+    friendIndicator: {
+        backgroundColor: Colors.surfaceHighlight, // Neutral
+        borderWidth: 1,
+        borderColor: Colors.primary // Green border to indicate connected
+    },
+    disabledButton: {
+        backgroundColor: Colors.surface,
+        borderColor: Colors.textMuted,
+        opacity: 0.7
+    },
+    actionText: {
+        fontSize: 16,
         fontWeight: 'bold',
-        marginLeft: 8,
-        fontSize: 15,
-    },
+        color: '#fff'
+    }
 });

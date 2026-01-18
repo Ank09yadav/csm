@@ -3,16 +3,23 @@ import { Alert } from 'react-native';
 import { useSocket } from '../context/SocketContext';
 import { useRouter } from 'expo-router';
 import { Logger } from '../services/Logger';
+import { useAuth } from '../context/AuthContext';
 
 export function useSocketNotifications() {
     const { socket } = useSocket();
     const router = useRouter();
+    const { refreshUserData } = useAuth();
 
     useEffect(() => {
         if (!socket) return;
 
         const handleNotification = (data: any) => {
             Logger.info("Notification received hook:", data.type);
+
+            // Refresh data on relevant notifications
+            if (data.type === 'friendRequest' || data.type === 'friendRequestAccepted') {
+                refreshUserData();
+            }
 
             if (data.type === 'friendRequest') {
                 Alert.alert(
@@ -51,10 +58,8 @@ export function useSocketNotifications() {
         };
 
         const handleFriendListUpdated = () => {
-            // This could trigger a refresh via a global event emitter or Context
-            // For now, we rely on the user navigating to the page to refresh, 
-            // or we could implement a global "invalidateQuery" if using React Query.
-            Logger.debug("Friend list updated event received");
+            Logger.debug("Friend list updated event received - Refreshing User Data");
+            refreshUserData();
         };
 
         socket.on('notification', handleNotification);

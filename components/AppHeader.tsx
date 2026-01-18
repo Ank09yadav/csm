@@ -57,10 +57,13 @@ export function AppHeader() {
                                 safeNavigate('/profile');
                         }}
                     >
-                        {/* Placeholder for user image if not available in auth context yet, or user.image */}
-                        <View style={[styles.profileImage, { backgroundColor: '#ccc', justifyContent: 'center', alignItems: 'center' }]}>
-                            <Text style={{ fontSize: 20, color: '#fff' }}>{headerTitle.charAt(0).toUpperCase()}</Text>
-                        </View>
+                        {user?.image ? (
+                            <Image source={{ uri: user.image }} style={styles.profileImage} />
+                        ) : (
+                            <View style={[styles.profileImage, { backgroundColor: Colors.surfaceHighlight, justifyContent: 'center', alignItems: 'center' }]}>
+                                <Text style={{ fontSize: 20, color: Colors.text }}>{headerTitle.charAt(0).toUpperCase()}</Text>
+                            </View>
+                        )}
                     </TouchableOpacity>
                     <Text style={styles.headerTitle} numberOfLines={1}>{headerTitle}</Text>
                 </View>

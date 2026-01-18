@@ -13,6 +13,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { BlurView } from 'expo-blur';
 
+import { Colors } from '../../constants/Colors';
+
 const { width, height } = Dimensions.get('window');
 
 interface AuthLayoutProps {
@@ -24,7 +26,7 @@ interface AuthLayoutProps {
 export default function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
     return (
         <LinearGradient
-            colors={['#4c669f', '#3b5998', '#192f6a']}
+            colors={[Colors.background, '#1e293b', '#0f172a']} // Slate gradient
             style={styles.container}
         >
             <StatusBar style="light" />
@@ -57,6 +59,7 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: Colors.background,
     },
     safeArea: {
         flex: 1,
@@ -76,7 +79,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 32,
         fontWeight: 'bold',
-        color: '#fff',
+        color: Colors.text,
         marginBottom: 8,
         textAlign: 'center',
         textShadowColor: 'rgba(0, 0, 0, 0.3)',
@@ -85,14 +88,14 @@ const styles = StyleSheet.create({
     },
     subtitle: {
         fontSize: 16,
-        color: 'rgba(255, 255, 255, 0.9)',
+        color: Colors.textSecondary,
         textAlign: 'center',
     },
     cardContainer: {
         borderRadius: 24,
         overflow: 'hidden',
         borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.3)',
+        borderColor: Colors.border,
         shadowColor: '#000',
         shadowOffset: {
             width: 0,
@@ -101,9 +104,10 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 20,
         elevation: 10,
+        backgroundColor: Colors.surface,
     },
     cardBlur: {
         padding: 24,
-        backgroundColor: 'rgba(255, 255, 255, 0.7)', // Fallback /Tint
+        backgroundColor: 'transparent',
     }
 });

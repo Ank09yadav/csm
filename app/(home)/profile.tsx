@@ -25,7 +25,7 @@ import { Colors } from '../../constants/Colors';
 const Profile = () => {
     // ... existing logic ...
     const router = useRouter();
-    const { user, signOut, isLoading: authLoading } = useAuth();
+    const { user, signOut, isLoading: authLoading, updateUser } = useAuth();
     const insets = useSafeAreaInsets();
 
     // ... rest of state and effects same as original ...
@@ -53,6 +53,9 @@ const Profile = () => {
             setFetching(true);
             const response = await api('/user', { authenticated: true });
             const userData = response.user;
+
+            // Update Global Context to be sure
+            updateUser(userData);
 
             // Populate fields
             setName(userData.name || '');
@@ -118,11 +121,17 @@ const Profile = () => {
                 college
             };
 
-            await api('/user', {
+            const response = await api('/user', {
                 method: 'POST',
                 authenticated: true,
                 body: JSON.stringify(payload)
             });
+
+            if (response.user) {
+                updateUser(response.user);
+            } else {
+                updateUser(payload);
+            }
 
             Alert.alert('Success', 'Profile updated successfully');
         } catch (error: any) {
@@ -162,6 +171,7 @@ const Profile = () => {
             });
 
             if (response.user) {
+                updateUser(response.user);
                 fetchUserData();
                 Alert.alert("Success", "Profile picture updated!");
             }

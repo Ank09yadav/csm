@@ -2,6 +2,8 @@ import React from 'react';
 import { View, TextInput, StyleSheet, TextInputProps, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Colors } from '../../constants/Colors';
+
 interface AuthInputProps extends TextInputProps {
     iconName?: keyof typeof Ionicons.glyphMap;
     isPassword?: boolean;
@@ -13,11 +15,11 @@ export default function AuthInput({ iconName, isPassword, style, ...props }: Aut
     return (
         <View style={styles.container}>
             {iconName && (
-                <Ionicons name={iconName} size={20} color="#666" style={styles.icon} />
+                <Ionicons name={iconName} size={20} color={Colors.textSecondary} style={styles.icon} />
             )}
             <TextInput
                 style={[styles.input, style]}
-                placeholderTextColor="#999"
+                placeholderTextColor={Colors.textMuted}
                 secureTextEntry={isPassword && !showPassword}
                 {...props}
             />
@@ -26,7 +28,7 @@ export default function AuthInput({ iconName, isPassword, style, ...props }: Aut
                     <Ionicons
                         name={showPassword ? "eye-off-outline" : "eye-outline"}
                         size={20}
-                        color="#666"
+                        color={Colors.textSecondary}
                     />
                 </TouchableOpacity>
             )}
@@ -38,13 +40,13 @@ const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#f5f5f5',
+        backgroundColor: Colors.surfaceHighlight, // Dark input bg
         borderRadius: 12,
         paddingHorizontal: 16,
         height: 56,
         marginBottom: 16,
         borderWidth: 1,
-        borderColor: '#e0e0e0',
+        borderColor: Colors.border,
     },
     icon: {
         marginRight: 12,
@@ -52,7 +54,7 @@ const styles = StyleSheet.create({
     input: {
         flex: 1,
         height: '100%',
-        color: '#333',
+        color: Colors.text, // White text
         fontSize: 16,
     },
     eyeIcon: {
